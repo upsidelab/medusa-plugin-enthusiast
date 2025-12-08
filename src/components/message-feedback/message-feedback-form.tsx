@@ -4,7 +4,7 @@ import { Textarea } from "../../components/ui/textarea"
 import { HTMLAttributes, SyntheticEvent, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "../../components/ui/alert";
 import { MessageFeedbackRating } from "../../components/message-feedback/message-feedback-rating";
-import {ApiClient} from "../../modules/enthusiast/api/client";
+import {adminApiClient} from "../../admin/lib/admin-client";
 import {cn} from "../../admin/lib/utils";
 import {Spinner} from "../../components/utils/spinner";
 
@@ -12,8 +12,6 @@ import {Spinner} from "../../components/utils/spinner";
 interface MessageFeedbackFormProps {
   messageId: number | null;
 }
-//todo
-const api = new ApiClient("http://localhost:10000", "1b3415b33c6b93b247901ecd2a3d550dee0b430d");
 
 export function MessageFeedbackForm({ messageId }: MessageFeedbackFormProps, { className, ...props }: HTMLAttributes<HTMLDivElement>) {
   const [isLoading, setIsLoading] = useState(false);
@@ -32,7 +30,7 @@ export function MessageFeedbackForm({ messageId }: MessageFeedbackFormProps, { c
     };
 
     try {
-      await api.conversations().updateMessageFeedback(messageId, feedbackData);
+      await adminApiClient.conversations().updateMessageFeedback(messageId, feedbackData);
       setIsSubmitted(true);
     } catch {
       setIsError(true);

@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { EnthusiastDatasetSelector } from "./dataset-selector";
 import {useEffect, useState} from "react";
 import {DataSetResponse} from "../../modules/enthusiast/api/types/dataset";
-import {adminSdk} from "../../admin/lib/sdk";
+import {adminApiClient} from "../../admin/lib/admin-client";
 import {Agent} from "../../modules/enthusiast/api/types/agent";
 
 const columnHelper = createDataTableColumnHelper<Agent>()
@@ -35,12 +35,8 @@ export const AgentTable = () => {
         const fetchDatasetAgents = async () => {
               try {
                 setIsLoading(true)
-                  //todo
-                const res: Agent[] = await adminSdk.client.fetch(
-                  `/enthusiast/datasets/${dataset}/agents`
-                )
+                const res = await adminApiClient.agents().getDatasetAgents(parseInt(dataset!))
                 setAgents(res)
-                console.log(agents)
               } catch (e) {
                 setError("Failed to load datasets")
               } finally {
@@ -75,7 +71,6 @@ export const AgentTable = () => {
           <Container>
             <Text>Dataset:</Text>
             <EnthusiastDatasetSelector value={dataset}  onChange={setDataset} />
-              <Text>{dataset}</Text>
           </Container>
         <DataTable instance={table}>
           <DataTable.Toolbar className="flex flex-col items-start justify-between gap-2 md:flex-row md:items-center">

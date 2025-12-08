@@ -1,5 +1,5 @@
 import {useEffect, useState} from "react";
-import {adminSdk} from "../../admin/lib/sdk";
+import {adminApiClient} from "../../admin/lib/admin-client";
 import {Container} from "@medusajs/ui";
 import {AgentTable} from "./agent-table";
 
@@ -13,7 +13,7 @@ export const EnthusiastMain = () => {
     const fetchStatus = async () => {
       try {
         setIsLoading(true)
-        const res: {connected: boolean} = await adminSdk.client.fetch("/enthusiast/status")
+        const res = await adminApiClient.getStatus()
 
         if (mounted) {
           setIsConnected(res?.connected ?? false)

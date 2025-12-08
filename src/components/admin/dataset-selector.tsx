@@ -1,5 +1,5 @@
 import {Select} from "@medusajs/ui";
-import {adminSdk} from "../../admin/lib/sdk";
+import {adminApiClient} from "../../admin/lib/admin-client";
 import {useEffect, useState} from "react";
 import {DataSetResponse} from "../../modules/enthusiast/api/types/dataset";
 
@@ -15,10 +15,12 @@ export const EnthusiastDatasetSelector = ({
         const fetchDatasets = async () => {
               try {
                 setIsLoading(true)
-                const res: DataSetResponse[] = await adminSdk.client.fetch(
-                  "/enthusiast/datasets"
-                )
+                const res = await adminApiClient.dataSets().getDatasets()
                 setDatasets(res)
+
+                if (!value && res.length > 0 && onChange) {
+                  onChange(res[0].id.toString())
+                }
               } catch (e) {
                 setError("Failed to load datasets")
               } finally {
@@ -29,9 +31,8 @@ export const EnthusiastDatasetSelector = ({
     }, [])
 
     return (
-        //todo
         <Select
-          value={value || "1"}
+          value={value || (datasets.length > 0 ? datasets[0].id.toString() : undefined)}
           onValueChange={(v) => onChange?.(v)}
           disabled={isLoading || !!error}
         >

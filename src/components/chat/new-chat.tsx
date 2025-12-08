@@ -5,15 +5,11 @@ import {Message, OnSubmit} from "./message-composer";
 import {PageMain} from "../utils/page-main";
 import {PageHeading} from "../utils/page-heading";
 import {ChatWindow} from "./chat-window";
-import {adminSdk} from "../../admin/lib/sdk";
-import {ApiClient} from "../../modules/enthusiast/api/client";
+import {adminApiClient} from "../../admin/lib/admin-client";
 
 interface NewChatProps {
   onPendingMessage: (message: Message, conversationId: number)=>void;
 }
-
-//todo
-const api = new ApiClient("http://localhost:10000", "1b3415b33c6b93b247901ecd2a3d550dee0b430d");
 
 export function NewChat({ onPendingMessage }: NewChatProps) {
   const { dataSetId: dataset } = useParams();
@@ -34,9 +30,7 @@ export function NewChat({ onPendingMessage }: NewChatProps) {
         const fetchDatasetAgents = async () => {
               try {
                 setIsLoading(true)
-                const res: Agent[] = await adminSdk.client.fetch(
-                  `/enthusiast/datasets/${datasetId}/agents`,
-                )
+                const res = await adminApiClient.agents().getDatasetAgents(datasetId!)
                 setAgents(res)
                 console.log(agents)
               } catch (e) {
@@ -48,9 +42,7 @@ export function NewChat({ onPendingMessage }: NewChatProps) {
         const fetchAgentDetails = async () => {
               try {
                 setIsLoading(true)
-                const res: AgentDetails = await adminSdk.client.fetch(
-                  `/enthusiast/datasets/${datasetId}/agents/${agentId}`,
-                )
+                const res = await adminApiClient.agents().getAgentById(agentId!)
                 setAgentDetails(res)
               } catch (e) {
                 setError("Failed to load datasets")
@@ -95,7 +87,7 @@ export function NewChat({ onPendingMessage }: NewChatProps) {
   })();
 
   const onSubmit: OnSubmit = async (message, createdConversationId) => {
-    const conversationId = createdConversationId || await api.conversations().createConversation(selectedAgent!.id)
+    const conversationId = createdConversationId || await adminApiClient.conversations().createConversation(selectedAgent!.id)
     onPendingMessage(message, conversationId);
   }
 

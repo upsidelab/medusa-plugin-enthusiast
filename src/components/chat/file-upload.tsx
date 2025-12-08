@@ -1,8 +1,9 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useDropzone, FileRejection } from 'react-dropzone';
 import { Upload, Paperclip } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import {cn} from "../../admin/lib/utils";
+import {adminApiClient} from "../../admin/lib/admin-client";
 
 export interface UploadedFile {
   id: string;
@@ -33,8 +34,24 @@ export function FileUpload({
   onUploadError,
 }: FileUploadProps) {
   const [dragActive, setDragActive] = useState(false);
-  //todo
-  const { supportedExtensions, isLoading: isLoadingExtensions } = {supportedExtensions: [".pdf", ".jpeg"], isLoading: false}
+  const [supportedExtensions, setSupportedExtensions] = useState<string[]>([]);
+  const [isLoadingExtensions, setIsLoadingExtensions] = useState(true);
+
+  useEffect(() => {
+    const fetchSupportedFileTypes = async () => {
+      try {
+        setIsLoadingExtensions(true);
+        const result = await adminApiClient.conversations().getSupportedFileTypes();
+        setSupportedExtensions(result.supported_extensions || []);
+      } catch (error) {
+        console.error('Failed to fetch supported file types:', error);
+      } finally {
+        setIsLoadingExtensions(false);
+      }
+    };
+
+    fetchSupportedFileTypes();
+  }, []);
 
   const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: FileRejection[]) => {
     if (disabled) return;

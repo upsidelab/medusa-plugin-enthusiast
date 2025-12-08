@@ -7,7 +7,7 @@ import { AttachmentBubble } from "./attachment-bubble";
 import { MessageError } from "./message-error";
 import { MessageBubbleTyping } from "./message-bubble-typing";
 import {ChatWindow} from "./chat-window";
-import { ApiClient } from "../../modules/enthusiast/api/client";
+import { adminApiClient } from "../../admin/lib/admin-client";
 import {AgentDetails} from "../../modules/enthusiast/api/types/agent";
 import {TaskHandle, Conversation as ConversationSchema} from "../../modules/enthusiast/api/types/conversation";
 
@@ -33,7 +33,6 @@ interface ChatSessionProps {
   pendingMessage?: Message;
 }
 
-const api = new ApiClient("http://localhost:10000", "1b3415b33c6b93b247901ecd2a3d550dee0b430d");
 //todo
 const streamingEnabled = false
 export function ChatSession({ pendingMessage }: ChatSessionProps) {
@@ -81,7 +80,7 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
         await onMessageComposerSubmit(pendingMessage);
       }
 
-      const conversation = await api.conversations().getConversation(conversationId);
+      const conversation = await adminApiClient.conversations().getConversation(conversationId);
       setConversation(conversation);
       setAgentId(conversation.agent?.id);
 
@@ -106,7 +105,7 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
       }
 
       try {
-        const agentDetails = await api.agents().getAgentById(agentId);
+        const agentDetails = await adminApiClient.agents().getAgentById(agentId);
         setAgentDetails(agentDetails);
       } catch (error) {
         console.error('Failed to load agent details:', error);
@@ -223,7 +222,7 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
     }
 
     try {
-      const response = await api.conversations().fetchResponseMessage(conversationId!, taskHandle);
+      const response = await adminApiClient.conversations().fetchResponseMessage(conversationId!, taskHandle);
 
       if (response) {
         setIsAgentLoading(false);
@@ -267,7 +266,7 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
     addFileMessages(message.files);
     addUserMessage(message.text);
 
-    const taskHandle = await api.conversations().sendMessage(conversationId, dataSetId!, message.text, streamingEnabled, message.files.map(f => f.id));
+    const taskHandle = await adminApiClient.conversations().sendMessage(conversationId, dataSetId!, message.text, streamingEnabled, message.files.map(f => f.id));
     usePolling.current = !taskHandle.streaming;
 
     if (taskHandle.streaming) {

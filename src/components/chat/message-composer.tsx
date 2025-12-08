@@ -4,7 +4,7 @@ import { FileUpload, UploadedFile } from "./file-upload";
 import { FileList } from "./file-list";
 
 import type { HandleFileRemove } from "./file-list";
-import {ApiClient} from "../../modules/enthusiast/api/client";
+import {adminApiClient} from "../../admin/lib/admin-client";
 import {cn} from "../../admin/lib/utils";
 import {Textarea} from "../ui/textarea";
 import {Button} from "../ui/button";
@@ -34,7 +34,7 @@ export interface MessageComposerProps {
 }
 
 const maxHeight = 300;
-const api = new ApiClient("http://localhost:10000", "1b3415b33c6b93b247901ecd2a3d550dee0b430d");
+
 
 export function MessageComposer({ onSubmit, isLoading, conversationLocked = false, conversationId, agentId, fileUploadEnabled }: MessageComposerProps) {
   const [input, setInput] = useState("");
@@ -95,7 +95,7 @@ export function MessageComposer({ onSubmit, isLoading, conversationLocked = fals
   }
 
   const uploadFile = async (file: File, conversationId: number): Promise<string> => {
-    const uploadResponse = await api.conversations().uploadFile(conversationId, file);
+    const uploadResponse = await adminApiClient.conversations().uploadFile(conversationId, file);
     return uploadResponse.task_id;
   };
 
@@ -104,7 +104,7 @@ export function MessageComposer({ onSubmit, isLoading, conversationLocked = fals
     let attempts = 0;
 
     while (attempts < maxAttempts) {
-      const statusData = await api.conversations().getFileUploadStatus(taskId);
+      const statusData = await adminApiClient.conversations().getFileUploadStatus(taskId);
 
       if (statusData.status === 'SUCCESS') {
         return statusData.result!.file_id!;
@@ -191,7 +191,7 @@ const handleFilesChange = async (files: UploadedFile[]) => {
   let currentConversationId = conversationId || createdConversationIdRef.current;
 
   if (!currentConversationId && agentId) {
-    currentConversationId = await api.conversations().createConversation(agentId);
+    currentConversationId = await adminApiClient.conversations().createConversation(agentId);
     createdConversationIdRef.current = currentConversationId;
   }
 
