@@ -10,7 +10,7 @@ export async function PATCH(
   const messageId = parseInt(req.params.id);
   const { rating, feedback } = req.body;
   
-  await enthusiastService.updateMessageFeedback(messageId, {
+  await enthusiastService.messageFeedbackUpdate(messageId, {
     rating,
     feedback
   });

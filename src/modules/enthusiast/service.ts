@@ -1,9 +1,9 @@
-import { MedusaService } from "@medusajs/framework/utils"
+import {InjectManager, InjectTransactionManager, MedusaContext, MedusaService, Modules} from "@medusajs/framework/utils"
+import { Logger } from "@medusajs/framework/types"
 import {PluginOptions} from "../../settings";
 import {ApiClient} from "./api/client";
 import {
   Conversation,
-  CreateMessagePayload,
   FeedbackData,
   FileUploadResponse,
   FileUploadStatusResponse,
@@ -12,25 +12,46 @@ import {
   TaskHandle
 } from "./api/types/conversation";
 import {AgentDetails} from "./api/types/agent";
+import EnthusiastDataset from "./models/enthusiast-dataset";
+import {EnthusiastDatasetType} from "../../admin/lib/types";
+import {ConfigModule} from "@medusajs/framework";
+import {SyncStatus} from "./types";
+import syncDatasetStatusWorkflow from "../../workflows/check-sync-status";
+import {MedusaContainer} from "@medusajs/medusa";
+import { Context } from "@medusajs/framework/types"
+import { EntityManager } from "@medusajs/framework/mikro-orm/knex"
+import {CreateDataSetPayload} from "../../modules/enthusiast/api/types/dataset";
+import {WebsocketHandler} from "../../modules/enthusiast/websocket";
 
-export default class EnthusiastService extends MedusaService({}){
+type InjectedDependencies = {
+  logger: Logger
+  configModule: ConfigModule
+}
+
+
+export default class EnthusiastService extends MedusaService({EnthusiastDataset}){
   protected options_: PluginOptions
+  protected logger_: Logger
+  protected configModule_: ConfigModule
 
-  constructor({}, options: PluginOptions) {
+  constructor({ logger, configModule }: InjectedDependencies, options: PluginOptions) {
     super(...arguments)
 
     this.options_ = options
+    this.logger_ = logger
+    this.configModule_ = configModule
   }
   apiClient = () => {
     return new ApiClient(this.options_.enthusiastApiUrl, this.options_.enthusiastServiceAccountToken)
   }
 
-  list = () => {
-    console.log(this.options_)
-    return this.options_
-  }
-  isConnected = (): boolean => {
-    return !!(this.options_.enthusiastApiUrl && this.options_.enthusiastServiceAccountToken);
+  isConnected = async () => {
+    try {
+      await this.apiClient().accounts().me();
+      return {isConnected: true}
+    } catch {
+      return {isConnected: false}
+    }
   }
   listAgents = async (dataSetId: number) => {
     return await this.apiClient().agents().getDatasetAvailableAgents(dataSetId)
@@ -48,7 +69,7 @@ export default class EnthusiastService extends MedusaService({}){
     return await this.apiClient().conversations().getConversations(dataSetId, page)
   }
 
-  createConversation = async (agentId: number): Promise<number> => {
+  conversationCreate = async (agentId: number): Promise<number> => {
     return await this.apiClient().conversations().createConversation(agentId)
   }
 
@@ -68,7 +89,7 @@ export default class EnthusiastService extends MedusaService({}){
     return await this.apiClient().conversations().fetchResponseMessage(conversationId, taskHandle)
   }
 
-  updateMessageFeedback = async (messageId: number, feedbackData: FeedbackData): Promise<void> => {
+  messageFeedbackUpdate = async (messageId: number, feedbackData: FeedbackData): Promise<void> => {
     return await this.apiClient().conversations().updateMessageFeedback(messageId, feedbackData)
   }
 
@@ -76,7 +97,7 @@ export default class EnthusiastService extends MedusaService({}){
     return await this.apiClient().conversations().getSupportedFileTypes()
   }
 
-  uploadFile = async (conversationId: number, file: Express.Multer.File): Promise<FileUploadResponse> => {
+uploadFile = async (conversationId: number, file: Express.Multer.File): Promise<FileUploadResponse> => {
     const fileObj = new File(
       [file.buffer],
       file.originalname,
@@ -87,6 +108,122 @@ export default class EnthusiastService extends MedusaService({}){
 
   getFileUploadStatus = async (taskId: string): Promise<FileUploadStatusResponse> => {
     return await this.apiClient().conversations().getFileUploadStatus(taskId)
+  }
+
+  listInternalDatasets = async (container: MedusaContainer): Promise<EnthusiastDatasetType[]> => {
+    const enthusiastDatasets = await this.apiClient().dataSets().getDataSets()
+    const enthusiastDatasetsIds = enthusiastDatasets.map(d => d.id)
+    const internalDatasets = await this.listEnthusiastDatasets()
+    const apiKeyModuleService = container.resolve(Modules.API_KEY)
+    const notRelevantDatasets = await this.listEnthusiastDatasets({
+      external_id: {$nin: enthusiastDatasetsIds}
+    })
+    const notRelevantApiKeyIds = notRelevantDatasets.map(dataset => dataset.api_key_id)
+    await apiKeyModuleService.deleteApiKeys(notRelevantApiKeyIds)
+    await this.deleteEnthusiastDatasets({
+      external_id: {
+        $nin: enthusiastDatasetsIds
+      },
+    })
+    const internalDatasetsMap = internalDatasets.reduce((acc, item) => {
+      acc[item.external_id] = item;
+      return acc;
+    }, {} as Record<string, { id: number; external_id: string }>);
+    // todo change names
+    const upsert = enthusiastDatasets.reduce((acc, enthusiastDataset) => {
+      const found = internalDatasetsMap[enthusiastDataset.id];
+      if (found) {
+        acc.update.push({
+          id: found.id.toString(),
+          external_id: enthusiastDataset.id,
+          name: enthusiastDataset.name,
+        });
+      } else {
+        acc.create.push({
+          external_id: enthusiastDataset.id,
+          name: enthusiastDataset.name,
+        });
+      }
+
+      return acc;
+    }, {create: [], update: []} as {create: {external_id: number, name: string}[], update: {id: string, external_id: number, name: string}[]});
+    await this.createEnthusiastDatasets(upsert.create)
+    await this.updateEnthusiastDatasets(upsert.update)
+    return await this.listEnthusiastDatasets()
+
+  }
+
+  connectDatasets = async (datasetsId: string, container: MedusaContainer): Promise<void> => {
+    const apiKeyModuleService = container.resolve(Modules.API_KEY)
+    const datasets = await this.listEnthusiastDatasets({id: datasetsId, is_connected: false})
+    if (!datasets || !datasets.length) {
+      return
+    }
+    const dataset = datasets[0]
+    const apiKey = await apiKeyModuleService.createApiKeys({
+      title: `Enthusiast API Key dataset(${dataset.id})`,
+      type: "secret",
+      created_by: "enthusiast-plugin",
+    })
+    const plugin = await this.apiClient().dataSets().addDataSetProductSource(dataset.external_id, this.options_.enthusiastMedusaSourcePluginName, {api_key:apiKey.token ,base_url:"http://host.docker.internal:9000"})
+    this.logger_.info(JSON.stringify(plugin))
+    await this.updateEnthusiastDatasets({id:dataset.id, is_connected:true, plugin_id:plugin.id, task_id: plugin.task_id, sync_status: SyncStatus.PROCESSING, api_key_id: apiKey.id})
+    await syncDatasetStatusWorkflow(container).run({input: {datasetId: dataset.id}})
+
+  }
+  synchronizeDatasets = async (datasetId: string, container: MedusaContainer): Promise<void> => {
+    const datasets = await this.listEnthusiastDatasets({id: datasetId, is_connected: true})
+    if (!datasets || !datasets.length) {
+      return
+    }
+    const dataset = datasets[0]
+    const { task_id } = await this.apiClient().dataSets().syncDataSetProductSource(dataset.external_id, dataset.plugin_id)
+
+    await this.updateEnthusiastDatasets({id:dataset.id, task_id: task_id, sync_status: SyncStatus.PROCESSING})
+    await syncDatasetStatusWorkflow(container).run({input: {datasetId: dataset.id}})
+  }
+
+  datasetCreate = async(dataset: CreateDataSetPayload) => {
+    return await this.apiClient().dataSets().createDataSet(dataset)
+  }
+  getConfig = async() => {
+    return await this.apiClient().config().getAvailableProviders()
+  }
+  listLanguageModels = async(name: string) => {
+    return await this.apiClient().config().getLanguageModelsForProvider(name)
+  }
+  listEmbeddingProviders = async(name: string) => {
+    return await this.apiClient().config().getEmbeddingModelsForProvider(name)
+  }
+  buildWebsocketHandler = () => {
+    if (this.options_.enthusiastWSUrl) {
+      return new WebsocketHandler(this.options_.enthusiastWSUrl)
+    }
+    return
+  }
+  getStreamStatus = async () => {
+    return {active: !!this.options_.enthusiastWSUrl}
+  }
+
+  @InjectTransactionManager()
+  protected async activateDataset_(
+    datasetId: string,
+    container: MedusaContainer,
+    @MedusaContext() sharedContext?: Context<EntityManager>
+  ): Promise<void> {
+    this.logger_.info(`DATASET_ID: ${datasetId}`)
+    await this.updateEnthusiastDatasets({selector: {}, data: {is_active: false}}, sharedContext)
+    await this.updateEnthusiastDatasets({id: datasetId, is_active:true}, sharedContext)
+  }
+
+  @InjectManager()
+  async activateDataset(
+    datasetId: string,
+    container: MedusaContainer,
+    @MedusaContext() sharedContext?: Context<EntityManager>
+  ) {
+    this.logger_.info(`DATASET_ID: ${datasetId}`)
+    return await this.activateDataset_(datasetId, container, sharedContext)
   }
 
 }

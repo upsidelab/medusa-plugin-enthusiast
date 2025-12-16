@@ -30,7 +30,7 @@ export async function POST(
   const enthusiastService: EnthusiastService = req.scope.resolve(ENTHUSIAST_MODULE)
   const { agent_id } = req.body;
   
-  const conversationId = await enthusiastService.createConversation(agent_id);
+  const conversationId = await enthusiastService.conversationCreate(agent_id);
   
   res.status(200).json({ id: conversationId });
 }

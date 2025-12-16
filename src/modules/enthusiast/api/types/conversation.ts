@@ -61,6 +61,10 @@ export type FileUploadStatusResponse = {
   };
 }
 
+export type StreamStatusResponse = {
+  active: boolean;
+}
+
 export type TaskState = {
   state: string;
 }

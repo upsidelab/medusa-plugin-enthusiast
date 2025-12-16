@@ -1,14 +1,39 @@
 import {adminSdk} from "./sdk";
 import {
-    Conversation,
-    CreateConversationPayload,
-    CreateMessagePayload, FeedbackData, FileUploadResponse, FileUploadStatusResponse, Message,
-    PaginatedResult, SupportedFileTypes,
-    TaskHandle,
-    TaskState
+  Conversation,
+  CreateConversationPayload,
+  CreateMessagePayload, FeedbackData, FileUploadResponse, FileUploadStatusResponse, Message,
+  PaginatedResult, StreamStatusResponse, SupportedFileTypes,
+  TaskHandle,
+  TaskState
 } from "../../modules/enthusiast/api/types/conversation";
 import {Agent, AgentDetails} from "../../modules/enthusiast/api/types/agent";
-import {DataSet, DataSetResponse} from "../../modules/enthusiast/api/types/dataset";
+import {EnthusiastDatasetType} from "./types";
+import {ProvidersConfig, ProvidersConfigResponse} from "../../modules/enthusiast/api/types/config";
+
+
+
+export class ConfigApiClient {
+  async getAvailableProviders(): Promise<ProvidersConfig> {
+    const response = await adminSdk.client.fetch(`/enthusiast/config`);
+    const result = response as ProvidersConfigResponse;
+    return {
+      embeddingProviders: result.embedding_providers,
+      languageModelProviders: result.language_model_providers
+    };
+  }
+
+  async getLanguageModelsForProvider(name: string): Promise<string[]> {
+    const response = await adminSdk.client.fetch(`/enthusiast/config/language-model-providers/${name}`);
+    return response as string[];
+  }
+
+  async getEmbeddingModelsForProvider(name: string): Promise<string[]> {
+    const response = await adminSdk.client.fetch(`/enthusiast/config/embedding-providers/${name}`);
+    return response as string[];
+  }
+}
+
 
 export class AdminConversationsApiClient {
   async getConversations(dataSetId: number, page: number = 1): Promise<PaginatedResult<Conversation>> {
@@ -117,7 +142,7 @@ export class AdminConversationsApiClient {
   async uploadFile(conversationId: number, file: File): Promise<FileUploadResponse> {
     const formData = new FormData();
     formData.append('file', file);
-
+    // todo
     const baseUrl = 'http://localhost:9000/admin';
     const url = `${baseUrl}/enthusiast/conversations/${conversationId}/upload`;
 
@@ -141,30 +166,49 @@ export class AdminConversationsApiClient {
 
     return response as FileUploadStatusResponse;
   }
+  async getStreamStatus(): Promise<StreamStatusResponse> {
+    const response = await adminSdk.client.fetch("/enthusiast/conversations/stream-status");
+    return response as StreamStatusResponse;
+  }
+
 }
+
 
 export class AdminDataSetsApiClient {
-  async getDataSets(): Promise<DataSet[]> {
-    const response = await adminSdk.client.fetch(
-      `/enthusiast/datasets`
-    ) as { results: DataSet[] };
-    return response.results;
+  async getInternalDataSets(): Promise<EnthusiastDatasetType[]> {
+    return await  adminSdk.client.fetch(
+      `/datasets`
+    ) as EnthusiastDatasetType[];
+  }
+  async connectDatasets(datasetId: string): Promise<void> {
+    return await adminSdk.client.fetch(
+      `/datasets/${datasetId}/connect`,
+        {
+          method: 'POST',
+        }
+    );
+  }
+  async synchronizeDatasets(datasetId: string): Promise<void> {
+    return await adminSdk.client.fetch(
+      `/datasets/${datasetId}/synchronize`,
+        {
+          method: 'POST',
+        }
+    );
   }
 
-  async getDatasets(): Promise<DataSetResponse[]> {
-    return await adminSdk.client.fetch("/enthusiast/datasets") as DataSetResponse[];
+  async setAsActive(datasetId: string): Promise<void> {
+    return await adminSdk.client.fetch(
+      `/datasets/${datasetId}/activate`,
+        {
+          method: 'POST',
+        }
+    );
   }
 }
 
-export class AdminAgentsApiClient {
-    async getDatasetAvailableAgents(dataSetId: number): Promise<Agent[]> {
-        const response = await adminSdk.client.fetch(
-            `/enthusiast/agents?dataset=${dataSetId}`
-        );
 
-        return response as Agent[];
-    }
-    
+export class AdminAgentsApiClient {
     async getAgentById(agentId: number): Promise<AgentDetails> {
         const response = await adminSdk.client.fetch(
             `/enthusiast/agents/${agentId}`
@@ -192,15 +236,14 @@ export class AdminApiClient {
   agents(): AdminAgentsApiClient {
     return new AdminAgentsApiClient();
   }
+  config(): ConfigApiClient {
+    return new ConfigApiClient();
+  }
 
-  /**
-   * Get connection status
-   */
   async getStatus(): Promise<{connected: boolean}> {
     return await adminSdk.client.fetch("/enthusiast/status") as {connected: boolean};
   }
 }
 
-// Export a singleton instance for convenience
 export const adminApiClient = new AdminApiClient();
 

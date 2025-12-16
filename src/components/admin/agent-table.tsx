@@ -4,14 +4,15 @@ import {
     DataTable,
     Heading,
     useDataTable,
-    Text
+    Text,
+    Button
 } from "@medusajs/ui"
-import { useNavigate } from "react-router-dom";
+import {Link, useNavigate} from "react-router-dom";
 import { EnthusiastDatasetSelector } from "./dataset-selector";
 import {useEffect, useState} from "react";
-import {DataSetResponse} from "../../modules/enthusiast/api/types/dataset";
 import {adminApiClient} from "../../admin/lib/admin-client";
 import {Agent} from "../../modules/enthusiast/api/types/agent";
+import {EnthusiastDatasetType} from "@/admin/lib/types";
 
 const columnHelper = createDataTableColumnHelper<Agent>()
 
@@ -25,53 +26,71 @@ const columns = [
 
 
 export const AgentTable = () => {
-    const [dataset, setDataset] = useState<string | null>(null)
+    const [dataset, setDataset] = useState<EnthusiastDatasetType | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [agents, setAgents] = useState<Agent[]>([])
     const navigate = useNavigate()
-
     useEffect(() => {
         const fetchDatasetAgents = async () => {
-              try {
+            if (!dataset) {
+                setAgents([])
+                return
+            }
+            try {
                 setIsLoading(true)
-                const res = await adminApiClient.agents().getDatasetAgents(parseInt(dataset!))
-                setAgents(res)
+                const res = await adminApiClient.agents().getDatasetAgents(dataset.external_id)
+                const availableAgents = res.filter(agent => !agent.corrupted)
+                setAgents(availableAgents)
               } catch (e) {
                 setError("Failed to load datasets")
               } finally {
                 setIsLoading(false)
               }
             }
-            if (!dataset) {
-                return
+        fetchDatasetAgents()
+    }, [dataset]);
+    useEffect(() => {
+        const fetchDataset = async () => {
+            try {
+                setIsLoading(true)
+                const res = await adminApiClient.dataSets().getInternalDataSets()
+                const activeDataset = res.filter(agent => agent.is_active)
+                if (activeDataset.length) {
+                    setDataset(activeDataset[0])
+                }
+              } catch (e) {
+                setError("Failed to load dataset")
+              } finally {
+                setIsLoading(false)
+              }
             }
-            fetchDatasetAgents()
-    }, [dataset])
-
-    const data = [
-      {id: "1", name: "OCR Order", description: "Makes an order form note."},
-      {id: "2", name: "Catalog Enrichment", description: "Extract products data from files."},
-      {id: "3", name: "Product Search", description: "Search for products based on user query."},
-      {id: "4", name: "User Manuals", description: "Answer questions related to products."},
-  ]
-
+        fetchDataset()
+    }, []);
   const table = useDataTable({
     columns,
     data: agents || [],
     getRowId: (row) => row.id.toString(),
-    rowCount: data.length,
+    rowCount: agents.length,
     onRowClick(event, row) {
-        navigate(`/enthusiast/dataset/${dataset}/chat?agent=${row.id}`)
+        navigate(`/enthusiast/dataset/${dataset?.external_id}/chat?agent=${row.id}`)
     },
   })
+    if (!dataset) {
+        return (
+    <Container className="divide-y p-0 px-6 py-4">
+        <Text>There are not available datasets, go to settings to configure it.</Text>
+      <Link to="/settings/enthusiast">
+        <Button variant="secondary" size="small">
+          Go to Enthusiast Settings
+        </Button>
+      </Link>
+    </Container>
+  )
 
+    }
   return (
       <div>
-          <Container>
-            <Text>Dataset:</Text>
-            <EnthusiastDatasetSelector value={dataset}  onChange={setDataset} />
-          </Container>
         <DataTable instance={table}>
           <DataTable.Toolbar className="flex flex-col items-start justify-between gap-2 md:flex-row md:items-center">
             <Heading>Agents</Heading>
@@ -81,6 +100,5 @@ export const AgentTable = () => {
           <DataTable.Table />
         </DataTable>
       </div>
-
   )
 }

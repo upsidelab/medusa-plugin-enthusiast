@@ -1,4 +1,4 @@
-import {AgentDetails, Agent} from "./types/agent";
+import {AgentDetails, Agent, Account} from "./types/agent";
 import {
     Conversation,
     CreateConversationPayload,
@@ -8,12 +8,13 @@ import {
     TaskState
 } from "./types/conversation";
 import {
-    CatalogSource,
-    ConfigureDocumentSourcePayload, ConfigureProductSourcePayload, CreateDataSetPayload,
-    DataSet, DataSetResponse,
-    DocumentSourceResponse,
-    ProductSourceResponse
+  CatalogSource,
+  ConfigureDocumentSourcePayload, ConfigureProductSourcePayload, CreateDataSetPayload,
+  DataSet, DataSetResponse,
+  DocumentSourceResponse,
+  ProductSourceResponse, SyncResponse
 } from "./types/dataset";
+import {ProvidersConfig, ProvidersConfigResponse} from "./types/config";
 
 export abstract class BaseApiClient {
   constructor(protected readonly apiBase: string, protected readonly apiToken: string) {}
@@ -188,21 +189,11 @@ export class DataSetsApiClient extends BaseApiClient {
     return (await response.json()).results as DataSet[];
   }
 
-  async createDataSet(dataSet: DataSet): Promise<number> {
-    const body: CreateDataSetPayload = {
-      name: dataSet.name,
-      language_model_provider: dataSet.languageModelProvider,
-      language_model: dataSet.languageModel,
-      embedding_provider: dataSet.embeddingProvider,
-      embedding_model: dataSet.embeddingModel,
-      embedding_vector_dimensions: dataSet.embeddingVectorSize,
-      system_message: dataSet.systemMessage
-    }
-
+  async createDataSet(payload: CreateDataSetPayload): Promise<number> {
     const response = await fetch(`${this.apiBase}/api/data_sets`,
       {
         ...this._requestConfiguration(),
-        body: JSON.stringify(body),
+        body: JSON.stringify(payload),
         method: 'POST'
       }
     );
@@ -236,25 +227,27 @@ export class DataSetsApiClient extends BaseApiClient {
     return await response.json() as CatalogSource;
   }
 
-  async addDataSetProductSource(dataSetId: number, pluginName: string, config: object): Promise<void> {
-    await fetch(
+  async addDataSetProductSource(dataSetId: number, pluginName: string, config: object): Promise<CatalogSource> {
+    const response = await fetch(
       `${this.apiBase}/api/data_sets/${dataSetId}/product_sources`,
       {
         ...this._requestConfiguration(),
         method: "POST",
-        body: JSON.stringify({plugin_name: pluginName, config: config})
+        body: JSON.stringify({plugin_name: pluginName, config: {configuration_args: config}})
       }
     );
+    return await response.json() as CatalogSource
   }
 
-  async syncDataSetProductSource(dataSetId: number, pluginId: number): Promise<void> {
-    await fetch(
+  async syncDataSetProductSource(dataSetId: number, pluginId: number): Promise<SyncResponse> {
+    const response = await fetch(
       `${this.apiBase}/api/data_sets/${dataSetId}/product_sources/${pluginId}/sync`,
       {
         ...this._requestConfiguration(),
         method: "POST"
       }
     );
+    return await response.json() as SyncResponse;
   }
 
   async configureDataSetDocumentSource(documentSource: CatalogSource): Promise<number> {
@@ -353,7 +346,36 @@ export class AgentsApiClient extends BaseApiClient {
         return await response.json() as AgentDetails;
     }
 }
+ export class AccountsApiClient extends BaseApiClient {
+  async me(): Promise<Account> {
+    const response = await fetch(`${this.apiBase}/api/account`, this._requestConfiguration());
+        if (!response.ok) {
+            throw new Error(`Failed to fetch account: ${response.statusText}`);
+        }
+        return await response.json() as Account;
+  }
+ }
+ export class ConfigApiClient extends BaseApiClient {
+  async getAvailableProviders(): Promise<ProvidersConfig> {
+    const response = await fetch(`${this.apiBase}/api/config`, this._requestConfiguration());
+    const result = await response.json() as ProvidersConfigResponse;
 
+    return {
+      embeddingProviders: result.embedding_providers,
+      languageModelProviders: result.language_model_providers
+    };
+  }
+
+  async getLanguageModelsForProvider(name: string): Promise<string[]> {
+    const response = await fetch(`${this.apiBase}/api/config/language_model_providers/${name}`, this._requestConfiguration());
+    return await response.json() as string[];
+  }
+
+  async getEmbeddingModelsForProvider(name: string): Promise<string[]> {
+    const response = await fetch(`${this.apiBase}/api/config/embedding_providers/${name}`, this._requestConfiguration());
+    return await response.json() as string[];
+  }
+}
 
 
 export class ApiClient {
@@ -375,6 +397,12 @@ export class ApiClient {
 
   agents(): AgentsApiClient {
     return new AgentsApiClient(this.apiBase, this.apiToken);
+  }
+  accounts(): AccountsApiClient {
+    return new AccountsApiClient(this.apiBase, this.apiToken);
+  }
+  config(): ConfigApiClient {
+    return new ConfigApiClient(this.apiBase, this.apiToken);
   }
 
   _requestConfiguration(): RequestInit {

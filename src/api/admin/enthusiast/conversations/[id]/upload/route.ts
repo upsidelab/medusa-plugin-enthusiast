@@ -17,12 +17,11 @@ export async function POST(
         "No file was uploaded"
     )
   }
-  
+
   const uploadResponse = await enthusiastService.uploadFile(
     conversationId,
     file
   );
-  
+
   res.status(200).json(uploadResponse);
 }
-

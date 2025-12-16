@@ -45,7 +45,7 @@ export type DocumentSourceResponse = {
 export type ConfigureDocumentSourcePayload = DocumentSourceResponse;
 
 export type DataSet = {
-  id: number | undefined;
+  id: number;
   name: string;
   languageModelProvider: string;
   languageModel: string;
@@ -61,6 +61,10 @@ export type CatalogSource = {
   config: string;
   data_set_id: number;
   corrupted: boolean;
+  task_id?: string | null;
+}
+export type SyncResponse = {
+  task_id: string;
 }
 
 export type Document = {

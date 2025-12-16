@@ -1,51 +1,35 @@
-import {Select} from "@medusajs/ui";
-import {adminApiClient} from "../../admin/lib/admin-client";
-import {useEffect, useState} from "react";
-import {DataSetResponse} from "../../modules/enthusiast/api/types/dataset";
+import { Select } from "@medusajs/ui";
+import { useEffect, useState } from "react";
 
-export const EnthusiastDatasetSelector = ({
-  value,
-  onChange,
-}) => {
-    const [isLoading, setIsLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
-    const [datasets, setDatasets] = useState<DataSetResponse[]>([])
+export const EnthusiastDatasetSelector = ({ onChange, datasets }) => {
+  const [selected, setSelected] = useState<string | null>(null);
 
-    useEffect(() => {
-        const fetchDatasets = async () => {
-              try {
-                setIsLoading(true)
-                const res = await adminApiClient.dataSets().getDatasets()
-                setDatasets(res)
+  useEffect(() => {
+    if (datasets.length > 0 && !selected) {
+      const initial = datasets[0].external_id.toString();
+      setSelected(initial);
+      onChange?.(initial);
+    }
+  }, [datasets]);
 
-                if (!value && res.length > 0 && onChange) {
-                  onChange(res[0].id.toString())
-                }
-              } catch (e) {
-                setError("Failed to load datasets")
-              } finally {
-                setIsLoading(false)
-              }
-            }
-            fetchDatasets()
-    }, [])
-
-    return (
-        <Select
-          value={value || (datasets.length > 0 ? datasets[0].id.toString() : undefined)}
-          onValueChange={(v) => onChange?.(v)}
-          disabled={isLoading || !!error}
-        >
-            <Select.Trigger>
-                <Select.Value placeholder="Select dataset"/>
-            </Select.Trigger>
-            <Select.Content>
-                {datasets.map((item) => (
-                    <Select.Item key={item.id} value={item.id.toString()}>
-                        {item.name}
-                    </Select.Item>
-                ))}
-            </Select.Content>
-        </Select>
-    )
-}
+  return (
+    <Select
+      value={selected ?? undefined}
+      onValueChange={(v) => {
+        setSelected(v);
+        onChange?.(v);
+      }}
+    >
+      <Select.Trigger>
+        <Select.Value placeholder="Select dataset" />
+      </Select.Trigger>
+      <Select.Content>
+        {datasets.map((item) => (
+          <Select.Item key={item.external_id} value={item.external_id.toString()}>
+            {item.name}
+          </Select.Item>
+        ))}
+      </Select.Content>
+    </Select>
+  );
+};

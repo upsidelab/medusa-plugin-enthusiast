@@ -8,6 +8,7 @@ import { MessageError } from "./message-error";
 import { MessageBubbleTyping } from "./message-bubble-typing";
 import {ChatWindow} from "./chat-window";
 import { adminApiClient } from "../../admin/lib/admin-client";
+import { adminSdk } from "../../admin/lib/sdk";
 import {AgentDetails} from "../../modules/enthusiast/api/types/agent";
 import {TaskHandle, Conversation as ConversationSchema} from "../../modules/enthusiast/api/types/conversation";
 
@@ -34,7 +35,6 @@ interface ChatSessionProps {
 }
 
 //todo
-const streamingEnabled = false
 export function ChatSession({ pendingMessage }: ChatSessionProps) {
   const { dataSetId: dataset, chatId } = useParams();
   const dataSetId = parseInt(dataset as string, 10);
@@ -48,11 +48,13 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
   const [messages, setMessages] = useState<MessageProps[]>([]);
   const [agentId, setAgentId] = useState<number | undefined>();
   const [agentDetails, setAgentDetails] = useState<AgentDetails>();
+  const usePolling = useRef<boolean>(true);
+  const streamingEnabled = useRef<boolean>(false);
 
   const initialized = useRef(false);
-  const usePolling = useRef(!streamingEnabled);
+
   const lastMessageRef = useRef<HTMLDivElement | null>(null);
-  const ws = useRef<WebSocket | null>(null);
+  const abortStreamRef = useRef<(() => void) | null>(null);
 
   const isAgentDeleted = !!conversation?.agent.deleted_at;
   const isAgentCorrupted = !!conversation?.agent.corrupted;
@@ -63,19 +65,38 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
     }, timeout);
   };
 
-  // Cleanup WebSocket on unmount
+  // Cleanup SSE stream on unmount
   useEffect(() => {
     return () => {
-      ws.current?.close();
+      if (abortStreamRef.current) {
+        abortStreamRef.current();
+        abortStreamRef.current = null;
+      }
     };
   }, []);
+//   useEffect(() => {
+//     const checkStream = async () => {
+//       try {
+//         const streamStatus = await adminApiClient.conversations().getStreamStatus();
+//
+//         if (streamStatus.active) {
+//           setStreamingEnabled(true);
+//         } else if (!streamStatus.active) {
+//           setStreamingEnabled(false);
+//         }
+//     } catch {
+//       setStreamingEnabled(false);
+//     }
+// };
+//     checkStream();
+//
+//   }, []);
 
   useEffect(() => {
     const loadMessages = async () => {
       const initChat = pendingMessage && !initialized.current;
 
       if (initChat) {
-        // React StrictMode renders this component twice, but we can't execute this callback twice.
         initialized.current = true;
         await onMessageComposerSubmit(pendingMessage);
       }
@@ -93,8 +114,24 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
 
       scrollToLastMessage(100);
     };
+    const checkStream = async () => {
+      try {
+        const streamStatus = await adminApiClient.conversations().getStreamStatus();
 
-    loadMessages();
+        if (streamStatus.active) {
+          streamingEnabled.current = true
+        } else if (!streamStatus.active) {
+          streamingEnabled.current = false
+        }
+      } catch {
+        streamingEnabled.current = false
+      }
+    };
+    const initChat = async () => {
+      await checkStream();
+      await loadMessages();
+  };
+    initChat()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -115,15 +152,21 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
     loadAgentDetails();
   }, [agentId, agentDetails]);
 
-  const handleWebSocketMessage = (event: MessageEvent) => {
-    const data = JSON.parse(event.data);
-    const eventType = data.event;
-
+  const handleSseMessage = (eventType: string, payload: any) => {
     const handlers: Record<string, () => void> = {
       on_parser_start: () => {
         setIsAgentLoading(true);
       },
       on_parser_stream: () => {
+        const chunk = payload?.chunk;
+        
+        if (chunk === undefined || chunk === null) {
+          console.warn("Missing chunk in payload:", payload);
+          return;
+        }
+        
+        const chunkStr = String(chunk);
+        
         setIsLoading(false);
         setIsAgentLoading(false);
 
@@ -133,10 +176,10 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
           if (lastMessage && lastMessage.type === "ai" && lastMessage.id === null) {
             return [
               ...prevMessages.slice(0, -1),
-              { ...lastMessage, text: lastMessage.text + data.data.chunk }
+              { ...lastMessage, text: lastMessage.text + chunkStr }
             ];
           } else {
-            return [...prevMessages, { type: "ai", text: data.data.chunk, id: null }];
+            return [...prevMessages, { type: "ai", text: chunkStr, id: null }];
           }
         });
 
@@ -145,19 +188,19 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
       message_id: () => {
         setMessages((prevMessages) => {
           const lastMessage = prevMessages[prevMessages.length - 1];
-          lastMessage.id = data.data.output;
+          lastMessage.id = payload.output;
           return [...prevMessages.slice(0, -1), lastMessage];
         });
       },
       action: () => {
-        setAgentAction(data.data.output);
+        setAgentAction(payload.output);
       },
       error: () => {
         setIsLoading(false);
         setIsAgentLoading(false);
         setMessages((prevMessages) => [
           ...prevMessages,
-          { type: "system", text: data.data.output, id: null },
+          { type: "system", text: payload.output, id: null },
         ]);
       },
     };
@@ -165,55 +208,56 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
     const handler = handlers[eventType];
     if (handler) {
       handler();
-    } else if (data.error) {
-      setIsLoading(false);
     }
   };
 
-  const handleWebSocketError = () => {
-    usePolling.current = true;
-  };
-
-  const handleWebSocketClose = (event: CloseEvent) => {
-    if (!event.wasClean) {
-      usePolling.current = true;
-    }
-  };
-
-  const createWsConnection = (conversationId: number): Promise<boolean> => {
-    return new Promise((resolve) => {
-      if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-        resolve(true);
-        return;
+  const createSseConnection = async (conversationId: number): Promise<boolean> => {
+    try {
+      // Close existing stream if any
+      if (abortStreamRef.current) {
+        abortStreamRef.current();
+        abortStreamRef.current = null;
       }
 
-      if (ws.current) {
-        ws.current.close();
+      const { stream, abort } = await adminSdk.client.fetchStream(`/enthusiast/conversations/${conversationId}/stream`);
+
+      if (!stream) {
+        usePolling.current = true;
+        return false;
       }
-  //todo
-      ws.current = new WebSocket(`ws://localhost:10000/ws/chat/${conversationId}/`);
 
-      ws.current.onopen = () => {
-        resolve(true);
-      };
-      ws.current.onmessage = handleWebSocketMessage;
-      ws.current.onerror = () => {
-        handleWebSocketError();
-        resolve(false);
-      };
-      ws.current.onclose = (event) => {
-        handleWebSocketClose(event);
-        resolve(false);
-      };
+      abortStreamRef.current = abort;
 
-      setTimeout(() => {
-        if (ws.current && ws.current.readyState !== WebSocket.OPEN) {
+      const processEvent = async (stream: any) => {
+        try {
+          for await (const chunk of stream) {
+            console.log(typeof chunk, chunk, chunk.event, chunk.data);
+            const eventType = chunk.event
+            const eventData = chunk.data
+            if (!eventType || !eventData || !eventData.length) {
+              continue;
+              }
+            const dataObj = JSON.parse(chunk.data)
+
+            handleSseMessage(eventType, dataObj);
+          }
+        } catch (error) {
+          if (error instanceof Error && error.name !== "AbortError") {
+            console.error("SSE stream error:", error);
           usePolling.current = true;
-          ws.current.close();
-          resolve(false);
+          }
+        } finally {
+          abortStreamRef.current = null;
         }
-      }, 5000);
-    });
+      };
+        await processEvent(stream);
+
+      return true;
+    } catch (error) {
+      console.error("Failed to create SSE connection:", error);
+      usePolling.current = true;
+      return false;
+    }
   };
 
   const updateTaskStatus = async (conversationId: number, taskHandle: TaskHandle, streaming: boolean) => {
@@ -266,18 +310,17 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
     addFileMessages(message.files);
     addUserMessage(message.text);
 
-    const taskHandle = await adminApiClient.conversations().sendMessage(conversationId, dataSetId!, message.text, streamingEnabled, message.files.map(f => f.id));
+    const taskHandle = await adminApiClient.conversations().sendMessage(conversationId, dataSetId!, message.text, streamingEnabled.current, message.files.map(f => f.id));
     usePolling.current = !taskHandle.streaming;
-
     if (taskHandle.streaming) {
-      const connected = await createWsConnection(conversationId);
+      const connected = await createSseConnection(conversationId);
       if (!connected) {
         usePolling.current = true;
       }
     }
 
     try {
-      updateTaskStatus(conversationId, taskHandle, !usePolling.current);
+      updateTaskStatus(conversationId, taskHandle, !usePolling);
     } catch {
       setIsLoading(false);
       setIsAgentLoading(false);
@@ -297,6 +340,7 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
               description={`Chat with ${conversation.agent.name}`}
               className="sticky top-0 pt-4 bg-white z-10"
           >
+            {/*// todo linking*/}
             <Button className="ml-auto mr-0" variant="outline" onClick={() => navigate(`/data-sets/${dataSetId}/chat/new/${encodeURIComponent(conversation.agent.id)}`)}>
               <PlusIcon />
               New Chat
