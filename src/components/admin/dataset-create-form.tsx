@@ -41,7 +41,6 @@ export const DatasetCreateForm = () => {
     }
 
     loadProvidersConfig();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const languageModelProvider = form.watch('language_model_provider');
@@ -120,7 +119,7 @@ export const DatasetCreateForm = () => {
                         Create Item
                       </Heading>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-4">
                       <Controller
                         control={form.control}
                         name="name"
@@ -156,7 +155,7 @@ export const DatasetCreateForm = () => {
                                   <Select.Value placeholder="Select a product" />
                                 </Select.Trigger>
                                 <Select.Content>
-                                  {languageModelNames?.map((name) => (
+                                  {providersConfig?.languageModelProviders?.map((name) => (
                                     <Select.Item key={name} value={name}>
                                       {name}
                                     </Select.Item>
@@ -225,22 +224,6 @@ export const DatasetCreateForm = () => {
                               <div className="flex items-center gap-x-1">
                                 <Label size="small" weight="plus">
                                   Embedding Provider Dimensions
-                                </Label>
-                              </div>
-                              <Input {...field} />
-                            </div>
-                          )
-                        }}
-                      />
-                      <Controller
-                        control={form.control}
-                        name="system_message"
-                        render={({ field }) => {
-                          return (
-                            <div className="flex flex-col space-y-2">
-                              <div className="flex items-center gap-x-1">
-                                <Label size="small" weight="plus">
-                                  System Message
                                 </Label>
                               </div>
                               <Input {...field} />
