@@ -10,16 +10,19 @@ import {
 import {Agent, AgentDetails} from "../../modules/enthusiast/api/types/agent";
 import {EnthusiastDatasetType} from "./types";
 import {ProvidersConfig, ProvidersConfigResponse} from "../../modules/enthusiast/api/types/config";
+import {CreateDataSetPayload} from "../../modules/enthusiast/api/types/dataset";
 
 
 
 export class ConfigApiClient {
   async getAvailableProviders(): Promise<ProvidersConfig> {
     const response = await adminSdk.client.fetch(`/enthusiast/config`);
-    const result = response as ProvidersConfigResponse;
+    const result = response as Partial<ProvidersConfigResponse & ProvidersConfig>;
     return {
-      embeddingProviders: result.embedding_providers,
-      languageModelProviders: result.language_model_providers
+      // Backend may respond with either snake_case (ProvidersConfigResponse) or camelCase (ProvidersConfig).
+      // Be defensive here so the admin UI always gets arrays.
+      embeddingProviders: (result.embedding_providers ?? result.embeddingProviders ?? []) as string[],
+      languageModelProviders: (result.language_model_providers ?? result.languageModelProviders ?? []) as string[]
     };
   }
 
@@ -207,6 +210,19 @@ export class AdminDataSetsApiClient {
   }
 }
 
+export class AdminEnthusiastDatasetsApiClient {
+  async list(): Promise<unknown> {
+    return await adminSdk.client.fetch(`/enthusiast/datasets`)
+  }
+
+  async create(payload: CreateDataSetPayload): Promise<number> {
+    return await adminSdk.client.fetch(`/enthusiast/datasets`, {
+      method: "POST",
+      body: payload,
+    })
+  }
+}
+
 
 export class AdminAgentsApiClient {
     async getAgentById(agentId: number): Promise<AgentDetails> {
@@ -227,6 +243,10 @@ export class AdminAgentsApiClient {
 export class AdminApiClient {
   dataSets(): AdminDataSetsApiClient {
     return new AdminDataSetsApiClient();
+  }
+
+  enthusiastDatasets(): AdminEnthusiastDatasetsApiClient {
+    return new AdminEnthusiastDatasetsApiClient()
   }
 
   conversations(): AdminConversationsApiClient {

@@ -3,7 +3,8 @@ import {
     Heading,
     Label,
     Input,
-    Button, Select,
+    Button,
+    Select, toast,
 } from "@medusajs/ui"
 import {
   useForm,
@@ -16,14 +17,23 @@ import {useEffect, useState} from "react";
 import {adminApiClient} from "../../admin/lib/admin-client";
 import {ProvidersConfig} from "../../modules/enthusiast/api/types/config";
 
+type DatasetCreateFormProps = {
+    setRefetch?: React.Dispatch<React.SetStateAction<boolean>>;
+}
 
-export const DatasetCreateForm = () => {
+export const DatasetCreateForm = ({ setRefetch }: DatasetCreateFormProps) => {
   const [providersConfig, setProvidersConfig] = useState<ProvidersConfig | undefined>(undefined);
   const [languageModelNames, setLanguageModelNames] = useState<string[] | undefined>(undefined);
   const [embeddingModels, setEmbeddingModels] = useState<string[] | undefined>(undefined);
+  const [formOpen, setFormOpen] = useState(false)
   const form = useForm<zod.infer<typeof PostCreateDatasetSchema>>({
     defaultValues: {
       name: "",
+      language_model_provider: "",
+      language_model: "",
+      embedding_provider: "",
+      embedding_model: "",
+      embedding_vector_dimensions: 512,
     },
   })
   useEffect(() => {
@@ -31,7 +41,6 @@ export const DatasetCreateForm = () => {
       const result = await adminApiClient.config().getAvailableProviders();
       setProvidersConfig(result);
 
-      // Set default values if not already set
       if (!form.getValues('language_model_provider') && result.languageModelProviders.length > 0) {
         form.setValue("language_model_provider", result.languageModelProviders[0]);
       }
@@ -52,14 +61,13 @@ export const DatasetCreateForm = () => {
         const result = await adminApiClient.config().getLanguageModelsForProvider(languageModelProvider);
         setLanguageModelNames(result);
 
-        // Set default value if not already set
-        if (!form.getValues('language_model') && result.length > 0) {
+        const current = form.getValues("language_model");
+        if (result.length > 0 && (!current || !result.includes(current))) {
           form.setValue("language_model", result[0]);
         }
       }
     }
     loadLanguageModels();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [languageModelProvider]);
 
   const embeddingProvider = form.watch('embedding_provider');
@@ -71,27 +79,32 @@ export const DatasetCreateForm = () => {
         const result = await adminApiClient.config().getEmbeddingModelsForProvider(embeddingProvider);
         setEmbeddingModels(result);
 
-        // Set default value if not already set
-        if (!form.getValues('embedding_model') && result.length > 0) {
+        const current = form.getValues("embedding_model");
+        if (result.length > 0 && (!current || !result.includes(current))) {
           form.setValue("embedding_model", result[0]);
         }
       }
     }
     loadEmbeddingModels();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [embeddingProvider]);
 
 
 
-  const handleSubmit = form.handleSubmit(({ name }) => {
-    // TODO: submit to backend
-    console.log(name)
+  const handleSubmit = form.handleSubmit(async (payload) => {
+    const createdId = await adminApiClient.enthusiastDatasets().create(payload)
+    setFormOpen(false)
+      if (setRefetch) {
+        setRefetch(true)
+      }
+    toast.success("Success", {
+          description: `Dataset ${createdId} created successfully`,
+        })
   })
 
   return (
-    <FocusModal>
+    <FocusModal open={formOpen} onOpenChange={setFormOpen}>
       <FocusModal.Trigger asChild>
-        <Button>Create</Button>
+        <Button variant="secondary">Create</Button>
       </FocusModal.Trigger>
       <FocusModal.Content>
         <FormProvider {...form}>
@@ -148,18 +161,27 @@ export const DatasetCreateForm = () => {
                                 </Label>
                               </div>
                               <Select
-                                value={field.value || ""}
-                                onValueChange={field.onChange}
+                                value={field.value ?? undefined}
+                                onValueChange={(v) => {
+                                  field.onChange(v)
+                                  form.resetField("language_model")
+                                }}
                               >
                                 <Select.Trigger>
-                                  <Select.Value placeholder="Select a product" />
+                                  <Select.Value placeholder="Select a provider" />
                                 </Select.Trigger>
                                 <Select.Content>
-                                  {providersConfig?.languageModelProviders?.map((name) => (
-                                    <Select.Item key={name} value={name}>
-                                      {name}
+                                  {providersConfig?.languageModelProviders?.length ? (
+                                    providersConfig.languageModelProviders.map((name) => (
+                                      <Select.Item key={name} value={name}>
+                                        {name}
+                                      </Select.Item>
+                                    ))
+                                  ) : (
+                                    <Select.Item disabled value="__empty_lm_provider__">
+                                      {providersConfig ? "No providers found" : "Loading..."}
                                     </Select.Item>
-                                  ))}
+                                  )}
                                 </Select.Content>
                               </Select>
 
@@ -178,7 +200,28 @@ export const DatasetCreateForm = () => {
                                   Language Model
                                 </Label>
                               </div>
-                              <Input {...field} />
+                              <Select
+                                value={field.value ?? undefined}
+                                onValueChange={field.onChange}
+                                disabled={!languageModelProvider}
+                              >
+                                <Select.Trigger>
+                                  <Select.Value placeholder={languageModelProvider ? "Select a model" : "Select provider first"} />
+                                </Select.Trigger>
+                                <Select.Content>
+                                  {languageModelNames?.length ? (
+                                    languageModelNames.map((name) => (
+                                      <Select.Item key={name} value={name}>
+                                        {name}
+                                      </Select.Item>
+                                    ))
+                                  ) : (
+                                    <Select.Item disabled value="__empty_lm__">
+                                      {languageModelNames ? "No models found" : "Loading..."}
+                                    </Select.Item>
+                                  )}
+                                </Select.Content>
+                              </Select>
                             </div>
                           )
                         }}
@@ -194,7 +237,30 @@ export const DatasetCreateForm = () => {
                                   Embedding Provider
                                 </Label>
                               </div>
-                              <Input {...field} />
+                              <Select
+                                value={field.value ?? undefined}
+                                onValueChange={(v) => {
+                                  field.onChange(v)
+                                  form.resetField("embedding_model")
+                                }}
+                              >
+                                <Select.Trigger>
+                                  <Select.Value placeholder="Select a provider" />
+                                </Select.Trigger>
+                                <Select.Content>
+                                  {providersConfig?.embeddingProviders?.length ? (
+                                    providersConfig.embeddingProviders.map((name) => (
+                                      <Select.Item key={name} value={name}>
+                                        {name}
+                                      </Select.Item>
+                                    ))
+                                  ) : (
+                                    <Select.Item disabled value="__empty_embed_provider__">
+                                      {providersConfig ? "No providers found" : "Loading..."}
+                                    </Select.Item>
+                                  )}
+                                </Select.Content>
+                              </Select>
                             </div>
                           )
                         }}
@@ -210,7 +276,28 @@ export const DatasetCreateForm = () => {
                                   Embedding Model
                                 </Label>
                               </div>
-                              <Input {...field} />
+                              <Select
+                                value={field.value ?? undefined}
+                                onValueChange={field.onChange}
+                                disabled={!embeddingProvider}
+                              >
+                                <Select.Trigger>
+                                  <Select.Value placeholder={embeddingProvider ? "Select a model" : "Select provider first"} />
+                                </Select.Trigger>
+                                <Select.Content>
+                                  {embeddingModels?.length ? (
+                                    embeddingModels.map((name) => (
+                                      <Select.Item key={name} value={name}>
+                                        {name}
+                                      </Select.Item>
+                                    ))
+                                  ) : (
+                                    <Select.Item disabled value="__empty_embed_model__">
+                                      {embeddingModels ? "No models found" : "Loading..."}
+                                    </Select.Item>
+                                  )}
+                                </Select.Content>
+                              </Select>
                             </div>
                           )
                         }}
@@ -226,7 +313,14 @@ export const DatasetCreateForm = () => {
                                   Embedding Provider Dimensions
                                 </Label>
                               </div>
-                              <Input {...field} />
+                              <Input
+                                type="number"
+                                value={Number.isFinite(field.value) ? String(field.value) : ""}
+                                onChange={(e) => {
+                                  const v = e.target.value
+                                  field.onChange(v === "" ? 0 : Number(v))
+                                }}
+                              />
                             </div>
                           )
                         }}

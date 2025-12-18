@@ -135,11 +135,11 @@ const columns = [
                     This table lists all enthusiast datasets available in your store.
                   </Text>
                 </div>
+                <DatasetCreateForm setRefetch={setRefetch} />
               </DataTable.Toolbar>
               <DataTable.Table />
             </DataTable>
           </div>
-          <DatasetCreateForm />
       </Container>
 
   )
