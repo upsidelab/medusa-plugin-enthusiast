@@ -1,8 +1,8 @@
 import Medusa from "@medusajs/js-sdk"
+import {getBackendUrl} from "./utils";
 
 export const adminSdk = new Medusa({
-    //todo
-    baseUrl: 'http://localhost:9000/admin',
+    baseUrl: getBackendUrl(),
     debug: true,
     auth: {
         type: "session",

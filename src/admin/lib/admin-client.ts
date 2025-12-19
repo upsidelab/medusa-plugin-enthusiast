@@ -11,6 +11,7 @@ import {Agent, AgentDetails} from "../../modules/enthusiast/api/types/agent";
 import {EnthusiastDatasetType} from "./types";
 import {ProvidersConfig, ProvidersConfigResponse} from "../../modules/enthusiast/api/types/config";
 import {CreateDataSetPayload} from "../../modules/enthusiast/api/types/dataset";
+import {getBackendUrl} from "./utils";
 
 
 
@@ -145,9 +146,7 @@ export class AdminConversationsApiClient {
   async uploadFile(conversationId: number, file: File): Promise<FileUploadResponse> {
     const formData = new FormData();
     formData.append('file', file);
-    // todo
-    const baseUrl = 'http://localhost:9000/admin';
-    const url = `${baseUrl}/enthusiast/conversations/${conversationId}/upload`;
+    const url = `${getBackendUrl()}/enthusiast/conversations/${conversationId}/upload`;
 
     const response = await fetch(url, {
       method: 'POST',

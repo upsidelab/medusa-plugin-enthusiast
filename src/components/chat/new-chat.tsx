@@ -32,7 +32,6 @@ export function NewChat({ onPendingMessage }: NewChatProps) {
                 setIsLoading(true)
                 const res = await adminApiClient.agents().getDatasetAgents(datasetId!)
                 setAgents(res)
-                console.log(agents)
               } catch (e) {
                 setError("Failed to load datasets")
               } finally {

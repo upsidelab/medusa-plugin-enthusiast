@@ -34,7 +34,6 @@ interface ChatSessionProps {
   pendingMessage?: Message;
 }
 
-//todo
 export function ChatSession({ pendingMessage }: ChatSessionProps) {
   const { dataSetId: dataset, chatId } = useParams();
   const dataSetId = parseInt(dataset as string, 10);
@@ -74,23 +73,6 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
       }
     };
   }, []);
-//   useEffect(() => {
-//     const checkStream = async () => {
-//       try {
-//         const streamStatus = await adminApiClient.conversations().getStreamStatus();
-//
-//         if (streamStatus.active) {
-//           setStreamingEnabled(true);
-//         } else if (!streamStatus.active) {
-//           setStreamingEnabled(false);
-//         }
-//     } catch {
-//       setStreamingEnabled(false);
-//     }
-// };
-//     checkStream();
-//
-//   }, []);
 
   useEffect(() => {
     const loadMessages = async () => {
@@ -231,7 +213,6 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
       const processEvent = async (stream: any) => {
         try {
           for await (const chunk of stream) {
-            console.log(typeof chunk, chunk, chunk.event, chunk.data);
             const eventType = chunk.event
             const eventData = chunk.data
             if (!eventType || !eventData || !eventData.length) {
@@ -340,8 +321,7 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
               description={`Chat with ${conversation.agent.name}`}
               className="sticky top-0 pt-4 bg-white z-10"
           >
-            {/*// todo linking*/}
-            <Button className="ml-auto mr-0" variant="outline" onClick={() => navigate(`/data-sets/${dataSetId}/chat/new/${encodeURIComponent(conversation.agent.id)}`)}>
+            <Button className="ml-auto mr-0" variant="outline" onClick={() => navigate(`/enthusiast/dataset/${dataSetId}/chat?agent=${encodeURIComponent(conversation.agent.id)}`)}>
               <PlusIcon />
               New Chat
             </Button>
