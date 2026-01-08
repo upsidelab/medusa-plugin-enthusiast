@@ -40,115 +40,116 @@ export const DatasetTable = () => {
             fetchDataset()
     }, [refetch])
 
-  const columnHelper = createDataTableColumnHelper<EnthusiastDatasetType>()
+    const columnHelper = createDataTableColumnHelper<EnthusiastDatasetType>()
 
-const columns = [
-  columnHelper.accessor("name", {
-    header: "Name"
-  }),
-  columnHelper.accessor("is_active", {
-    header: () => {
-        return (
-            <ColumnHeaderWithTooltip name="Active" tooltip="Active dataset will be used in all chats"/>
-        )
-    },
-    cell: ({getValue}) => {
-        return getValue() ? (<SquareGreenSolid />) : (<SquareRedSolid />)
-    }
-  }),
-  columnHelper.accessor("is_connected", {
-    header: () => {
-        return (
-            <ColumnHeaderWithTooltip name="Connected" tooltip="Determines if Enthusiast dataset has added Medusa products source."/>
-        )
-    },
-    cell: ({getValue}) => {
-        return getValue() ? (<SquareGreenSolid />) : (<SquareRedSolid />)
-    }
-  }),
-  columnHelper.accessor("sync_status", {
-    header: "Synchronization Status",
-  }),
-  columnHelper.accessor("last_synced", {
-    header: "Last synchronized",
-  }),
-  columnHelper.display({
-    id: "actions",
-    header: "Actions",
-    cell: ({ row }) => {
-      const dataset = row.original
+    const columns = [
+      columnHelper.accessor("name", {
+        header: "Name"
+      }),
+      columnHelper.accessor("is_active", {
+        header: () => {
+            return (
+                <ColumnHeaderWithTooltip name="Active" tooltip="Active dataset will be used in all chats"/>
+            )
+        },
+        cell: ({getValue}) => {
+            return getValue() ? (<SquareGreenSolid />) : (<SquareRedSolid />)
+        }
+      }),
+      columnHelper.accessor("is_connected", {
+        header: () => {
+            return (
+                <ColumnHeaderWithTooltip name="Connected" tooltip="Determines if Enthusiast dataset has added Medusa products source."/>
+            )
+        },
+        cell: ({getValue}) => {
+            return getValue() ? (<SquareGreenSolid />) : (<SquareRedSolid />)
+        }
+      }),
+      columnHelper.accessor("sync_status", {
+        header: "Synchronization Status",
+      }),
+      columnHelper.accessor("last_synced", {
+        header: "Last synchronized",
+      }),
+      columnHelper.display({
+        id: "actions",
+        header: "Actions",
+        cell: ({ row }) => {
+          const dataset = row.original
+
+          return (
+            <ActionMenu
+              groups={[
+                {
+                  actions: [
+                    {
+                      icon: <CircleCheckBig />,
+                      disabled: !dataset.is_connected || dataset.is_active,
+                      label: "Set as active",
+                      onClick: async () => {
+                          await adminApiClient.dataSets().setAsActive(dataset.id)
+                          setRefetch(true)
+                      }
+                    },
+                    {
+                      icon: <Plus />,
+                      disabled: dataset.is_connected,
+                      label: "Connect",
+                      onClick: async () => {
+                          await adminApiClient.dataSets().connectDatasets(dataset.id)
+                          setRefetch(true)
+                      }
+                    },
+                    {
+                      icon: <RefreshCw />,
+                      label: "Synchronize",
+                      disabled: !dataset.is_connected,
+                      onClick: async () => {
+                          await adminApiClient.dataSets().synchronizeDatasets(dataset.id)
+                          setRefetch(true)
+                      }
+                    },
+                  ],
+                },
+              ]}
+            />
+          )
+        },
+      }),
+
+    ]
+      const table = useDataTable({
+        columns,
+        data: datasets || [],
+        getRowId: (row) => row.id,
+        rowCount: datasets.length,
+      })
+
+      if (isLoading) {
+          return (
+              <LoadingSpinner />
+          )
+      }
 
       return (
-        <ActionMenu
-          groups={[
-            {
-              actions: [
-                {
-                  icon: <CircleCheckBig />,
-                  disabled: !dataset.is_connected || dataset.is_active,
-                  label: "Set as active",
-                  onClick: async () => {
-                      await adminApiClient.dataSets().setAsActive(dataset.id)
-                      setRefetch(true)
-                  }
-                },
-                {
-                  icon: <Plus />,
-                  disabled: dataset.is_connected,
-                  label: "Connect",
-                  onClick: async () => {
-                      await adminApiClient.dataSets().connectDatasets(dataset.id)
-                      setRefetch(true)
-                  }
-                },
-                {
-                  icon: <RefreshCw />,
-                  label: "Synchronize",
-                  onClick: async () => {
-                      await adminApiClient.dataSets().synchronizeDatasets(dataset.id)
-                      setRefetch(true)
-                  }
-                },
-              ],
-            },
-          ]}
-        />
+          <Container>
+
+              <div>
+                <DataTable instance={table}>
+                  <DataTable.Toolbar className="flex flex-col items-start justify-between gap-2 md:flex-row md:items-center">
+                    <div className="flex flex-col">
+                      <Heading>Enthusiast Datasets</Heading>
+                      <Text className="text-ui-fg-subtle" size="small">
+                        This table lists all enthusiast datasets available in your store.
+                      </Text>
+                    </div>
+                    <DatasetCreateForm setRefetch={setRefetch} />
+                  </DataTable.Toolbar>
+                  <DataTable.Table />
+                </DataTable>
+              </div>
+          </Container>
+
       )
-    },
-  }),
-
-]
-  const table = useDataTable({
-    columns,
-    data: datasets || [],
-    getRowId: (row) => row.id,
-    rowCount: datasets.length,
-  })
-
-  if (isLoading) {
-      return (
-          <LoadingSpinner />
-      )
-  }
-
-  return (
-      <Container>
-
-          <div>
-            <DataTable instance={table}>
-              <DataTable.Toolbar className="flex flex-col items-start justify-between gap-2 md:flex-row md:items-center">
-                <div className="flex flex-col">
-                  <Heading>Enthusiast Datasets</Heading>
-                  <Text className="text-ui-fg-subtle" size="small">
-                    This table lists all enthusiast datasets available in your store.
-                  </Text>
-                </div>
-                <DatasetCreateForm setRefetch={setRefetch} />
-              </DataTable.Toolbar>
-              <DataTable.Table />
-            </DataTable>
-          </div>
-      </Container>
-
-  )
 }

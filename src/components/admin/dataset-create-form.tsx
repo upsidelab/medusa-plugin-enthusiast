@@ -4,7 +4,7 @@ import {
     Label,
     Input,
     Button,
-    Select, toast,
+    Select, toast, Kbd, IconButton,
 } from "@medusajs/ui"
 import {
   useForm,
@@ -16,6 +16,7 @@ import {PostCreateDatasetSchema} from "../../api/admin/datasets/validators";
 import {useEffect, useState} from "react";
 import {adminApiClient} from "../../admin/lib/admin-client";
 import {ProvidersConfig} from "../../modules/enthusiast/api/types/config";
+import {XMarkMini} from "@medusajs/icons";
 
 type DatasetCreateFormProps = {
     setRefetch?: React.Dispatch<React.SetStateAction<boolean>>;
@@ -98,7 +99,8 @@ export const DatasetCreateForm = ({ setRefetch }: DatasetCreateFormProps) => {
     }
     form.reset()
     toast.success("Success", {
-          description: `Dataset ${createdId} created successfully`,
+      description: `Dataset ${createdId} created successfully`,
+      position: "top-right",
     })
   })
 
@@ -108,23 +110,25 @@ export const DatasetCreateForm = ({ setRefetch }: DatasetCreateFormProps) => {
         <Button variant="secondary">Create</Button>
       </FocusModal.Trigger>
       <FocusModal.Content>
+        <FocusModal.Header className="flex items-center justify-between px-6 py-4">
+            <div className="flex items-center gap-x-4">
+            <FocusModal.Close asChild>
+                <IconButton
+                    size="small"
+                    variant="transparent"
+                    className="text-ui-contrast-fg-secondary hover:text-ui-contrast-fg-primary hover:bg-ui-contrast-bg-base-hover active:bg-ui-contrast-bg-base-pressed focus-visible:bg-ui-contrast-bg-base-hover focus-visible:shadow-borders-interactive-with-active"
+                >
+                <XMarkMini />
+                </IconButton>
+            </FocusModal.Close>
+            </div>
+        </FocusModal.Header>
+
         <FormProvider {...form}>
           <form
             onSubmit={handleSubmit}
             className="flex h-full flex-col overflow-hidden"
           >
-            <FocusModal.Header>
-              <div className="flex items-center justify-end gap-x-2">
-                  <FocusModal.Close asChild>
-                    <Button size="small" variant="secondary">
-                      Cancel
-                    </Button>
-                  </FocusModal.Close>
-                  <Button type="submit" size="small">
-                    Save
-                  </Button>
-                </div>
-            </FocusModal.Header>
             <FocusModal.Body>
                 <div className="flex flex-1 flex-col items-center overflow-y-auto">
                   <div className="mx-auto flex w-full max-w-[720px] flex-col gap-y-8 px-2 py-16">
@@ -330,6 +334,18 @@ export const DatasetCreateForm = ({ setRefetch }: DatasetCreateFormProps) => {
                   </div>
                 </div>
             </FocusModal.Body>
+            <FocusModal.Footer>
+              <div className="flex items-center justify-end gap-x-2">
+                <FocusModal.Close asChild>
+                    <Button size="small" variant="secondary">
+                      Cancel
+                    </Button>
+                </FocusModal.Close>
+                  <Button type="submit" size="small">
+                    Save
+                  </Button>
+              </div>
+            </FocusModal.Footer>
           </form>
         </FormProvider>
       </FocusModal.Content>

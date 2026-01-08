@@ -9,7 +9,10 @@ class CustomClient extends Client {
         return result as T;
     } catch (error) {
         if (error instanceof FetchError) {
-            toast(error.message);
+            toast.error("Operation failed.", {
+                description: error.message,
+                position: "top-right",
+            });
         }
         throw error;
     }
