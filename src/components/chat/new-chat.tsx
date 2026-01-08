@@ -6,6 +6,7 @@ import {PageMain} from "../utils/page-main";
 import {PageHeading} from "../utils/page-heading";
 import {ChatWindow} from "./chat-window";
 import {adminApiClient} from "../../admin/lib/admin-client";
+import {LoadingSpinner} from "../../components/utils/spinner";
 
 interface NewChatProps {
   onPendingMessage: (message: Message, conversationId: number)=>void;
@@ -88,6 +89,9 @@ export function NewChat({ onPendingMessage }: NewChatProps) {
   const onSubmit: OnSubmit = async (message, createdConversationId) => {
     const conversationId = createdConversationId || await adminApiClient.conversations().createConversation(selectedAgent!.id)
     onPendingMessage(message, conversationId);
+  }
+  if (isLoading) {
+      return (<LoadingSpinner/>)
   }
 
   return (

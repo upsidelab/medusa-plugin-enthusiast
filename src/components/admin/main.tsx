@@ -2,6 +2,7 @@ import {useEffect, useState} from "react";
 import {adminApiClient} from "../../admin/lib/admin-client";
 import {Container} from "@medusajs/ui";
 import {AgentTable} from "./agent-table";
+import {LoadingSpinner} from "../../components/utils/spinner";
 
 export const EnthusiastMain = () => {
   const [isConnected, setIsConnected] = useState<boolean | null>(null)
@@ -38,9 +39,7 @@ export const EnthusiastMain = () => {
 
   if (isLoading) {
     return (
-      <Container className="p-4">
-        <p>Loading status...</p>
-      </Container>
+      <LoadingSpinner/>
     )
   }
 

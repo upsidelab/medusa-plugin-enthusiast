@@ -8,11 +8,11 @@ import {
     Button
 } from "@medusajs/ui"
 import {Link, useNavigate} from "react-router-dom";
-import { EnthusiastDatasetSelector } from "./dataset-selector";
 import {useEffect, useState} from "react";
 import {adminApiClient} from "../../admin/lib/admin-client";
 import {Agent} from "../../modules/enthusiast/api/types/agent";
 import {EnthusiastDatasetType} from "@/admin/lib/types";
+import {LoadingSpinner} from "../../components/utils/spinner";
 
 const columnHelper = createDataTableColumnHelper<Agent>()
 
@@ -76,20 +76,29 @@ export const AgentTable = () => {
         navigate(`/enthusiast/dataset/${dataset?.external_id}/chat?agent=${row.id}`)
     },
   })
+    if (isLoading) {
+        return (<LoadingSpinner />)
+    }
     if (!dataset) {
         return (
-    <Container className="divide-y p-0 px-6 py-4">
-        <Text>There are not available datasets, go to settings to configure it.</Text>
-      <Link to="/settings/enthusiast">
-        <Button variant="secondary" size="small">
-          Go to Enthusiast Settings
-        </Button>
-      </Link>
-    </Container>
-  )
-
+            <Container className="divide-y p-0 px-6 py-4">
+                <Text>There are not available datasets, go to settings to configure it.</Text>
+              <Link to="/settings/enthusiast">
+                <Button variant="secondary" size="small">
+                  Go to Enthusiast Settings
+                </Button>
+              </Link>
+            </Container>
+        )
     }
-  return (
+    if (!agents || !agents.length) {
+        return (
+            <Container className="divide-y p-0 px-6 py-4">
+                <Text>There are not available datasets, go to settings to configure it.</Text>
+            </Container>
+        )
+    }
+    return (
       <div>
         <DataTable instance={table}>
           <DataTable.Toolbar className="flex flex-col items-start justify-between gap-2 md:flex-row md:items-center">

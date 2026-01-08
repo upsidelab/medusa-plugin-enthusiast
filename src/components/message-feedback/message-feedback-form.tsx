@@ -6,7 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from "../../components/ui/alert";
 import { MessageFeedbackRating } from "../../components/message-feedback/message-feedback-rating";
 import {adminApiClient} from "../../admin/lib/admin-client";
 import {cn} from "../../admin/lib/utils";
-import {Spinner} from "../../components/utils/spinner";
+import {LoadingSpinner} from "../../components/utils/spinner";
 
 
 interface MessageFeedbackFormProps {
@@ -70,7 +70,7 @@ export function MessageFeedbackForm({ messageId }: MessageFeedbackFormProps, { c
               <>Thank you for your feedback!</>
               :
               <>
-                {isLoading && <Spinner />}
+                {isLoading && <LoadingSpinner />}
                 Submit Feedback
               </>
             }

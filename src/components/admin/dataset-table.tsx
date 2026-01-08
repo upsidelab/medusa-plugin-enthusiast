@@ -12,14 +12,16 @@ import {EnthusiastDatasetType} from "../../admin/lib/types";
 import {CircleCheckBig, Plus, RefreshCw} from "lucide-react";
 import {ActionMenu} from "../../components/admin/action-menu";
 import {ColumnHeaderWithTooltip} from "../../components/admin/column-with-tooltip";
-import {SquareGreenSolid, SquareRedSolid} from "@medusajs/icons";
+import {Spinner, SquareGreenSolid, SquareRedSolid} from "@medusajs/icons";
 import {DatasetCreateForm} from "../../components/admin/dataset-create-form";
+import {LoadingSpinner} from "../../components/utils/spinner";
 
 
 export const DatasetTable = () => {
     const [datasets, setDatasets] = useState<EnthusiastDatasetType[]>([])
     const [refetch, setRefetch] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState(true)
+    //todo use errors
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
@@ -122,6 +124,12 @@ const columns = [
     getRowId: (row) => row.id,
     rowCount: datasets.length,
   })
+
+  if (isLoading) {
+      return (
+          <LoadingSpinner />
+      )
+  }
 
   return (
       <Container>
