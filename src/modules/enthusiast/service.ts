@@ -118,7 +118,7 @@ uploadFile = async (conversationId: number, file: Express.Multer.File): Promise<
     const notRelevantDatasets = await this.listEnthusiastDatasets({
       external_id: {$nin: enthusiastDatasetsIds}
     })
-    const notRelevantApiKeyIds = notRelevantDatasets.map(dataset => dataset.api_key_id)
+    const notRelevantApiKeyIds = notRelevantDatasets.map(dataset => dataset.api_key_id).filter((id): id is string => id != null)
     await apiKeyModuleService.deleteApiKeys(notRelevantApiKeyIds)
     await this.deleteEnthusiastDatasets({
       external_id: {
@@ -128,7 +128,7 @@ uploadFile = async (conversationId: number, file: Express.Multer.File): Promise<
     const internalDatasetsMap = internalDatasets.reduce((acc, item) => {
       acc[item.external_id] = item;
       return acc;
-    }, {} as Record<string, { id: number; external_id: string }>);
+    }, {} as Record<string, { id: string; external_id: number }>);
     // todo change names
     const upsert = enthusiastDatasets.reduce((acc, enthusiastDataset) => {
       const found = internalDatasetsMap[enthusiastDataset.id];
@@ -172,12 +172,12 @@ uploadFile = async (conversationId: number, file: Express.Multer.File): Promise<
 
   }
   synchronizeDatasets = async (datasetId: string, container: MedusaContainer): Promise<void> => {
-    const datasets = await this.listEnthusiastDatasets({id: datasetId, is_connected: true})
+    const datasets = await this.listEnthusiastDatasets({id: datasetId, is_connected: true, plugin_id:{$ne: null}})
     if (!datasets || !datasets.length) {
       return
     }
     const dataset = datasets[0]
-    const { task_id } = await this.apiClient().dataSets().syncDataSetProductSource(dataset.external_id, dataset.plugin_id)
+    const { task_id } = await this.apiClient().dataSets().syncDataSetProductSource(dataset.external_id, dataset.plugin_id!)
 
     await this.updateEnthusiastDatasets({id:dataset.id, task_id: task_id, sync_status: SyncStatus.PROCESSING})
     await syncDatasetStatusWorkflow(container).run({input: {datasetId: dataset.id}})

@@ -16,22 +16,74 @@ import {
 } from "./types/dataset";
 import {ProvidersConfig, ProvidersConfigResponse} from "./types/config";
 
+export class EnthusiastAPIError extends Error {
+  constructor(
+    public status: number,
+    public statusText: string,
+    public body?: string
+  ) {
+    super(`HTTP ${status} ${statusText}`);
+  }
+}
+
 export abstract class BaseApiClient {
   constructor(protected readonly apiBase: string, protected readonly apiToken: string) {}
 
   _requestConfiguration(): RequestInit {
     return {
       headers: {
-        'Authorization': `Token ${this.apiToken}`,
+        "Authorization": `Token ${this.apiToken}`,
         "Content-Type": "application/json"
       }
     }
+  }
+
+  async _extractErrorMessage(responseObj: Response): Promise<string> {
+    let errorMessage: string;
+    try {
+      const errorObj = await responseObj.json();
+      if (!errorObj || typeof errorObj !== "object") {
+        return "Unknown error"
+      }
+      const firstEntry = Object.entries(errorObj)[0] as [string, any] | undefined
+
+      if (!firstEntry) return "Unknown error"
+
+      const [key, value] = firstEntry
+      let message: string
+
+      if (Array.isArray(value)) {
+        message = String(value[0])
+      } else if (typeof value === "string") {
+        message = value
+      } else {
+        message = JSON.stringify(value)
+      }
+
+      return `${key}: ${message}`
+    } catch {
+        errorMessage = await responseObj.text();
+      }
+      return errorMessage
+  }
+
+  async raiseForStatus(response: Response): Promise<Response> {
+    if (!response.ok) {
+      const errorMessage = await this._extractErrorMessage(response)
+      throw new EnthusiastAPIError(response.status, response.statusText, errorMessage);
+    }
+    return response
+  }
+  async sendRequest(path: string, init: RequestInit) {
+    const response = await fetch(path, init)
+    await this.raiseForStatus(response)
+    return response
   }
 }
 
 export class ConversationsApiClient extends BaseApiClient {
   async getConversations(dataSetId: number, page: number = 1): Promise<PaginatedResult<Conversation>> {
-    const response = await fetch(`${this.apiBase}/api/conversations?data_set_id=${dataSetId}&page=${page}`, this._requestConfiguration());
+    const response = await this.sendRequest(`${this.apiBase}/api/conversations?data_set_id=${dataSetId}&page=${page}`, this._requestConfiguration());
     return await response.json() as Promise<PaginatedResult<Conversation>>;
   }
 
@@ -44,7 +96,7 @@ export class ConversationsApiClient extends BaseApiClient {
     requestConfiguration.method = "POST";
     requestConfiguration.body = JSON.stringify(requestBody);
 
-    const response = await fetch(`${this.apiBase}/api/conversations`, requestConfiguration);
+    const response = await this.sendRequest(`${this.apiBase}/api/conversations`, requestConfiguration);
 
     if (!response.ok) {
       throw new Error(`Failed to create conversation: ${response.statusText}`);
@@ -62,7 +114,7 @@ export class ConversationsApiClient extends BaseApiClient {
       file_ids: fileIds
     }
 
-    const response = await fetch(`${this.apiBase}/api/conversations/${conversationId}`, {
+    const response = await this.sendRequest(`${this.apiBase}/api/conversations/${conversationId}`, {
       ...this._requestConfiguration(),
       method: "POST",
       body: JSON.stringify(requestBody)
@@ -76,7 +128,7 @@ export class ConversationsApiClient extends BaseApiClient {
   }
 
   async getTaskStatus(taskHandle: TaskHandle): Promise<string> {
-    const response = await fetch(`${this.apiBase}/api/task_status/${taskHandle.task_id}`, {...this._requestConfiguration()});
+    const response = await this.sendRequest(`${this.apiBase}/api/task_status/${taskHandle.task_id}`, {...this._requestConfiguration()});
     const { state } = await response.json() as TaskState;
     return state;
   }
@@ -94,7 +146,7 @@ export class ConversationsApiClient extends BaseApiClient {
 
   async getConversation(conversation_id: number | null): Promise<Conversation> {
     try {
-      const response = await fetch(`${this.apiBase}/api/conversations/${conversation_id}`, {
+      const response = await this.sendRequest(`${this.apiBase}/api/conversations/${conversation_id}`, {
         ...this._requestConfiguration()
       });
 
@@ -113,7 +165,7 @@ export class ConversationsApiClient extends BaseApiClient {
   }
 
   async updateMessageFeedback(messageId: number | null, feedbackData: FeedbackData): Promise<void> {
-    const response = await fetch(`${this.apiBase}/api/messages/${messageId}/feedback/`, {
+    const response = await this.sendRequest(`${this.apiBase}/api/messages/${messageId}/feedback/`, {
       ...this._requestConfiguration(),
       method: 'PATCH',
       body: JSON.stringify(feedbackData),
@@ -128,7 +180,7 @@ export class ConversationsApiClient extends BaseApiClient {
 
   async getSupportedFileTypes(): Promise<SupportedFileTypes> {
     try {
-      const response = await fetch(`${this.apiBase}/api/supported-file-types/`, {
+      const response = await this.sendRequest(`${this.apiBase}/api/supported-file-types/`, {
         ...this._requestConfiguration(),
         method: 'GET',
       });
@@ -155,7 +207,7 @@ export class ConversationsApiClient extends BaseApiClient {
     const headers = { ...requestConfig.headers } as Record<string, string>;
     delete headers['Content-Type'];
 
-    const response = await fetch(`${this.apiBase}/api/conversations/${conversationId}/upload/`, {
+    const response = await this.sendRequest(`${this.apiBase}/api/conversations/${conversationId}/upload/`, {
       ...requestConfig,
       method: 'POST',
       headers,
@@ -170,7 +222,7 @@ export class ConversationsApiClient extends BaseApiClient {
   }
 
   async getFileUploadStatus(taskId: string): Promise<FileUploadStatusResponse> {
-    const response = await fetch(`${this.apiBase}/api/file-upload-status/${taskId}/`, this._requestConfiguration());
+    const response = await this.sendRequest(`${this.apiBase}/api/file-upload-status/${taskId}/`, this._requestConfiguration());
 
     if (!response.ok) {
       throw new Error('Failed to check upload status');
@@ -185,12 +237,12 @@ export class ConversationsApiClient extends BaseApiClient {
 
 export class DataSetsApiClient extends BaseApiClient {
   async getDataSets(): Promise<DataSet[]> {
-    const response = await fetch(`${this.apiBase}/api/data_sets`, this._requestConfiguration());
+    const response = await this.sendRequest(`${this.apiBase}/api/data_sets`, this._requestConfiguration());
     return (await response.json()).results as DataSet[];
   }
 
   async createDataSet(payload: CreateDataSetPayload): Promise<number> {
-    const response = await fetch(`${this.apiBase}/api/data_sets`,
+    const response = await this.sendRequest(`${this.apiBase}/api/data_sets`,
       {
         ...this._requestConfiguration(),
         body: JSON.stringify(payload),
@@ -210,7 +262,7 @@ export class DataSetsApiClient extends BaseApiClient {
       data_set_id: productSource.data_set_id
     }
 
-    const response = await fetch(`${this.apiBase}/api/data_sets/${productSource.data_set_id}/product_sources/${productSource.id}`,
+    const response = await this.sendRequest(`${this.apiBase}/api/data_sets/${productSource.data_set_id}/product_sources/${productSource.id}`,
       {
         ...this._requestConfiguration(),
         body: JSON.stringify(body),
@@ -223,12 +275,12 @@ export class DataSetsApiClient extends BaseApiClient {
   }
 
   async getDataSetProductSource(dataSetId: number, productSourceId: number): Promise<CatalogSource> {
-    const response = await fetch(`${this.apiBase}/api/data_sets/${dataSetId}/product_sources/${productSourceId}`, this._requestConfiguration());
+    const response = await this.sendRequest(`${this.apiBase}/api/data_sets/${dataSetId}/product_sources/${productSourceId}`, this._requestConfiguration());
     return await response.json() as CatalogSource;
   }
 
   async addDataSetProductSource(dataSetId: number, pluginName: string, config: object): Promise<CatalogSource> {
-    const response = await fetch(
+    const response = await this.sendRequest(
       `${this.apiBase}/api/data_sets/${dataSetId}/product_sources`,
       {
         ...this._requestConfiguration(),
@@ -240,7 +292,7 @@ export class DataSetsApiClient extends BaseApiClient {
   }
 
   async syncDataSetProductSource(dataSetId: number, pluginId: number): Promise<SyncResponse> {
-    const response = await fetch(
+    const response = await this.sendRequest(
       `${this.apiBase}/api/data_sets/${dataSetId}/product_sources/${pluginId}/sync`,
       {
         ...this._requestConfiguration(),
@@ -258,7 +310,7 @@ export class DataSetsApiClient extends BaseApiClient {
       data_set_id: documentSource.data_set_id
     }
 
-    const response = await fetch(`${this.apiBase}/api/data_sets/${documentSource.data_set_id}/document_sources/${documentSource.id}`,
+    const response = await this.sendRequest(`${this.apiBase}/api/data_sets/${documentSource.data_set_id}/document_sources/${documentSource.id}`,
       {
         ...this._requestConfiguration(),
         body: JSON.stringify(body),
@@ -271,12 +323,12 @@ export class DataSetsApiClient extends BaseApiClient {
   }
 
   async getDataSetDocumentSource(dataSetId: number, documentSourceId: number): Promise<CatalogSource> {
-    const response = await fetch(`${this.apiBase}/api/data_sets/${dataSetId}/document_sources/${documentSourceId}`, this._requestConfiguration());
+    const response = await this.sendRequest(`${this.apiBase}/api/data_sets/${dataSetId}/document_sources/${documentSourceId}`, this._requestConfiguration());
     return await response.json() as CatalogSource;
   }
 
   async addDataSetDocumentSource(dataSetId: number, pluginName: string, config: object): Promise<void> {
-    await fetch(
+    await this.sendRequest(
       `${this.apiBase}/api/data_sets/${dataSetId}/document_sources`,
       {
         ...this._requestConfiguration(),
@@ -287,7 +339,7 @@ export class DataSetsApiClient extends BaseApiClient {
   }
 
   async syncDataSetDocumentSource(dataSetId: number, pluginId: number): Promise<void> {
-    await fetch(
+    await this.sendRequest(
       `${this.apiBase}/api/data_sets/${dataSetId}/document_sources/${pluginId}/sync`,
       {
         ...this._requestConfiguration(),
@@ -297,7 +349,7 @@ export class DataSetsApiClient extends BaseApiClient {
   }
 
   async removeDataSetDocumentSource(dataSetId: number, pluginId: number): Promise<void> {
-    await fetch(
+    await this.sendRequest(
       `${this.apiBase}/api/data_sets/${dataSetId}/document_sources/${pluginId}`,
       {
         ...this._requestConfiguration(),
@@ -307,7 +359,7 @@ export class DataSetsApiClient extends BaseApiClient {
   }
 
   async getDataSet(dataSetId: number): Promise<DataSet> {
-    const response = await fetch(`${this.apiBase}/api/data_sets/${dataSetId}`, this._requestConfiguration());
+    const response = await this.sendRequest(`${this.apiBase}/api/data_sets/${dataSetId}`, this._requestConfiguration());
     const data = await response.json();
 
     return {
@@ -327,7 +379,7 @@ export class DataSetsApiClient extends BaseApiClient {
 export class AgentsApiClient extends BaseApiClient {
     async getDatasetAvailableAgents(dataSetId: number): Promise<Agent[]> {
         const query = new URLSearchParams({ dataset: dataSetId.toString() });
-        const response = await fetch(
+        const response = await this.sendRequest(
             `${this.apiBase}/api/agents?${query.toString()}`,
             this._requestConfiguration()
         );
@@ -339,7 +391,7 @@ export class AgentsApiClient extends BaseApiClient {
         return await response.json() as Agent[];
     }
     async getAgentById(agentId: number): Promise<AgentDetails> {
-        const response = await fetch(`${this.apiBase}/api/agents/${agentId}`, this._requestConfiguration());
+        const response = await this.sendRequest(`${this.apiBase}/api/agents/${agentId}`, this._requestConfiguration());
         if (!response.ok) {
             throw new Error(`Failed to fetch agent: ${response.statusText}`);
         }
@@ -348,7 +400,7 @@ export class AgentsApiClient extends BaseApiClient {
 }
  export class AccountsApiClient extends BaseApiClient {
   async me(): Promise<Account> {
-    const response = await fetch(`${this.apiBase}/api/account`, this._requestConfiguration());
+    const response = await this.sendRequest(`${this.apiBase}/api/account`, this._requestConfiguration());
         if (!response.ok) {
             throw new Error(`Failed to fetch account: ${response.statusText}`);
         }
@@ -357,7 +409,7 @@ export class AgentsApiClient extends BaseApiClient {
  }
  export class ConfigApiClient extends BaseApiClient {
   async getAvailableProviders(): Promise<ProvidersConfig> {
-    const response = await fetch(`${this.apiBase}/api/config`, this._requestConfiguration());
+    const response = await this.sendRequest(`${this.apiBase}/api/config`, this._requestConfiguration());
     const result = await response.json() as ProvidersConfigResponse;
 
     return {
@@ -367,12 +419,12 @@ export class AgentsApiClient extends BaseApiClient {
   }
 
   async getLanguageModelsForProvider(name: string): Promise<string[]> {
-    const response = await fetch(`${this.apiBase}/api/config/language_model_providers/${name}`, this._requestConfiguration());
+    const response = await this.sendRequest(`${this.apiBase}/api/config/language_model_providers/${name}`, this._requestConfiguration());
     return await response.json() as string[];
   }
 
   async getEmbeddingModelsForProvider(name: string): Promise<string[]> {
-    const response = await fetch(`${this.apiBase}/api/config/embedding_providers/${name}`, this._requestConfiguration());
+    const response = await this.sendRequest(`${this.apiBase}/api/config/embedding_providers/${name}`, this._requestConfiguration());
     return await response.json() as string[];
   }
 }
@@ -398,19 +450,12 @@ export class ApiClient {
   agents(): AgentsApiClient {
     return new AgentsApiClient(this.apiBase, this.apiToken);
   }
+
   accounts(): AccountsApiClient {
     return new AccountsApiClient(this.apiBase, this.apiToken);
   }
+
   config(): ConfigApiClient {
     return new ConfigApiClient(this.apiBase, this.apiToken);
-  }
-
-  _requestConfiguration(): RequestInit {
-    return {
-      headers: {
-        'Authorization': `Token ${this.apiToken}`,
-        "Content-Type": "application/json"
-      }
-    }
   }
 }

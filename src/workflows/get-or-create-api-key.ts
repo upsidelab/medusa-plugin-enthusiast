@@ -18,10 +18,9 @@ const findExistingApiKeyStep = createStep(
     const apiKeys = await apiKeyModuleService.listApiKeys({
       title: "Enthusiast API Key",
       type: "secret",
-      created_by: "enthusiast-plugin",
     })
 
-    const existing = apiKeys.find((k) => !k.revoked_at && !k.deleted_at)
+    const existing = apiKeys.filter(key => key.created_by === "enthusiast-plugin").find((k) => !k.revoked_at && !k.deleted_at)
 
     return new StepResponse<ApiKey>(existing ?? null)
   }

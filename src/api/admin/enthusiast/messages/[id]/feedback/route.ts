@@ -1,11 +1,12 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
 import { ENTHUSIAST_MODULE } from "../../../../../../modules/enthusiast"
 import EnthusiastService from "../../../../../../modules/enthusiast/service";
+import {withEnthusiastErrorHandling} from "../../../../../../api/wrappers";
 
-export async function PATCH(
+export const PATCH = withEnthusiastErrorHandling(async(
   req: MedusaRequest<{ rating: number | null; feedback: string }>,
   res: MedusaResponse
-) {
+) => {
   const enthusiastService: EnthusiastService = req.scope.resolve(ENTHUSIAST_MODULE)
   const messageId = parseInt(req.params.id);
   const { rating, feedback } = req.body;
@@ -16,5 +17,4 @@ export async function PATCH(
   });
   
   res.status(200).json({ success: true });
-}
-
+})

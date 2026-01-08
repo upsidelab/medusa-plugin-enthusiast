@@ -1,4 +1,4 @@
-import {adminSdk} from "./sdk";
+import {adminSdk, enthusiastAdminSdk} from "./sdk";
 import {
   Conversation,
   CreateConversationPayload,
@@ -13,35 +13,31 @@ import {ProvidersConfig, ProvidersConfigResponse} from "../../modules/enthusiast
 import {CreateDataSetPayload} from "../../modules/enthusiast/api/types/dataset";
 import {getBackendUrl} from "./utils";
 
-
-
-export class ConfigApiClient {
+export class AdminEnthusiastConfigApiClient {
   async getAvailableProviders(): Promise<ProvidersConfig> {
-    const response = await adminSdk.client.fetch(`/enthusiast/config`);
+    const response = await enthusiastAdminSdk.client.fetch(`/enthusiast/config`);
     const result = response as Partial<ProvidersConfigResponse & ProvidersConfig>;
     return {
-      // Backend may respond with either snake_case (ProvidersConfigResponse) or camelCase (ProvidersConfig).
-      // Be defensive here so the admin UI always gets arrays.
       embeddingProviders: (result.embedding_providers ?? result.embeddingProviders ?? []) as string[],
       languageModelProviders: (result.language_model_providers ?? result.languageModelProviders ?? []) as string[]
     };
   }
 
   async getLanguageModelsForProvider(name: string): Promise<string[]> {
-    const response = await adminSdk.client.fetch(`/enthusiast/config/language-model-providers/${name}`);
+    const response = await enthusiastAdminSdk.client.fetch(`/enthusiast/config/language-model-providers/${name}`);
     return response as string[];
   }
 
   async getEmbeddingModelsForProvider(name: string): Promise<string[]> {
-    const response = await adminSdk.client.fetch(`/enthusiast/config/embedding-providers/${name}`);
+    const response = await enthusiastAdminSdk.client.fetch(`/enthusiast/config/embedding-providers/${name}`);
     return response as string[];
   }
 }
 
 
-export class AdminConversationsApiClient {
+export class AdminEnthusiastConversationsApiClient {
   async getConversations(dataSetId: number, page: number = 1): Promise<PaginatedResult<Conversation>> {
-    const response = await adminSdk.client.fetch(
+    const response = await enthusiastAdminSdk.client.fetch(
       `/enthusiast/conversations?data_set_id=${dataSetId}&page=${page}`
     );
     return response as PaginatedResult<Conversation>;
@@ -52,7 +48,7 @@ export class AdminConversationsApiClient {
       agent_id: agentId
     };
 
-    const response = await adminSdk.client.fetch(
+    const response = await enthusiastAdminSdk.client.fetch(
       `/enthusiast/conversations`,
       {
         method: "POST",
@@ -71,7 +67,7 @@ export class AdminConversationsApiClient {
       file_ids: fileIds
     }
 
-    const response = await adminSdk.client.fetch(
+    const response = await enthusiastAdminSdk.client.fetch(
       `/enthusiast/conversations/${conversationId}`,
       {
         method: "POST",
@@ -83,7 +79,7 @@ export class AdminConversationsApiClient {
   }
 
   async getTaskStatus(taskHandle: TaskHandle): Promise<string> {
-    const response = await adminSdk.client.fetch(
+    const response = await enthusiastAdminSdk.client.fetch(
       `/enthusiast/task-status/${taskHandle.task_id}`
     );
     const { state } = response as TaskState;
@@ -103,7 +99,7 @@ export class AdminConversationsApiClient {
 
   async getConversation(conversation_id: number | null): Promise<Conversation> {
     try {
-      const response = await adminSdk.client.fetch(
+      const response = await enthusiastAdminSdk.client.fetch(
         `/enthusiast/conversations/${conversation_id}`
       );
 
@@ -118,7 +114,7 @@ export class AdminConversationsApiClient {
   }
 
   async updateMessageFeedback(messageId: number | null, feedbackData: FeedbackData): Promise<void> {
-    await adminSdk.client.fetch(
+    await enthusiastAdminSdk.client.fetch(
       `/enthusiast/messages/${messageId}/feedback/`,
       {
         method: 'PATCH',
@@ -129,7 +125,7 @@ export class AdminConversationsApiClient {
 
   async getSupportedFileTypes(): Promise<SupportedFileTypes> {
     try {
-      const response = await adminSdk.client.fetch(
+      const response = await enthusiastAdminSdk.client.fetch(
         `/enthusiast/supported-file-types/`
       );
 
@@ -162,14 +158,14 @@ export class AdminConversationsApiClient {
   }
 
   async getFileUploadStatus(taskId: string): Promise<FileUploadStatusResponse> {
-    const response = await adminSdk.client.fetch(
+    const response = await enthusiastAdminSdk.client.fetch(
       `/enthusiast/file-upload-status/${taskId}/`
     );
 
     return response as FileUploadStatusResponse;
   }
   async getStreamStatus(): Promise<StreamStatusResponse> {
-    const response = await adminSdk.client.fetch("/enthusiast/conversations/stream-status");
+    const response = await enthusiastAdminSdk.client.fetch("/enthusiast/conversations/stream-status");
     return response as StreamStatusResponse;
   }
 
@@ -211,11 +207,11 @@ export class AdminDataSetsApiClient {
 
 export class AdminEnthusiastDatasetsApiClient {
   async list(): Promise<unknown> {
-    return await adminSdk.client.fetch(`/enthusiast/datasets`)
+    return await enthusiastAdminSdk.client.fetch(`/enthusiast/datasets`)
   }
 
   async create(payload: CreateDataSetPayload): Promise<number> {
-    return await adminSdk.client.fetch(`/enthusiast/datasets`, {
+    return await enthusiastAdminSdk.client.fetch(`/enthusiast/datasets`, {
       method: "POST",
       body: payload,
     })
@@ -223,9 +219,9 @@ export class AdminEnthusiastDatasetsApiClient {
 }
 
 
-export class AdminAgentsApiClient {
+export class AdminEnthusiastAgentsApiClient {
     async getAgentById(agentId: number): Promise<AgentDetails> {
-        const response = await adminSdk.client.fetch(
+        const response = await enthusiastAdminSdk.client.fetch(
             `/enthusiast/agents/${agentId}`
         );
         
@@ -233,7 +229,7 @@ export class AdminAgentsApiClient {
     }
 
     async getDatasetAgents(dataSetId: number): Promise<Agent[]> {
-        return await adminSdk.client.fetch(
+        return await enthusiastAdminSdk.client.fetch(
             `/enthusiast/datasets/${dataSetId}/agents`
         ) as Agent[];
     }
@@ -248,19 +244,19 @@ export class AdminApiClient {
     return new AdminEnthusiastDatasetsApiClient()
   }
 
-  conversations(): AdminConversationsApiClient {
-    return new AdminConversationsApiClient();
+  conversations(): AdminEnthusiastConversationsApiClient {
+    return new AdminEnthusiastConversationsApiClient();
   }
 
-  agents(): AdminAgentsApiClient {
-    return new AdminAgentsApiClient();
+  agents(): AdminEnthusiastAgentsApiClient {
+    return new AdminEnthusiastAgentsApiClient();
   }
-  config(): ConfigApiClient {
-    return new ConfigApiClient();
+  config(): AdminEnthusiastConfigApiClient {
+    return new AdminEnthusiastConfigApiClient();
   }
 
   async getStatus(): Promise<{connected: boolean}> {
-    return await adminSdk.client.fetch("/enthusiast/status") as {connected: boolean};
+    return await enthusiastAdminSdk.client.fetch("/enthusiast/status") as {connected: boolean};
   }
 }
 
