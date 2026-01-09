@@ -1,6 +1,11 @@
+# Medusa Enthusiast Plugin
+A Medusa plugin that integrates with Enthusiast.
+
 ## Prerequisite
 1. Access to Enthusiast instance
 2. Enthusiast with configured Medusa source [Docs](https://upsidelab.io/tools/enthusiast/integrations/medusa)
+3. Medusa v2.x
+4. Node.js >= 20
 
 ## Installation
 Install the plugin in your Medusa project:
@@ -34,9 +39,20 @@ Add below entry to your plugins array:
   }
 }
 ```
+### Run Database Migrations
+After installing and configuring the plugin, run database migrations to create the required tables:
+```bash
+npx medusa db:migrate
+````
+
 ## Generating service account key
 Run command on your Enthusiast instance or go to `Manage -> Service accounts` in Enthusiast to generate Admin permission service account token.
 Command:
 ```bash
 python manage.py createserviceaccount -n <name of your integration> --admin
 ```
+
+## Usage
+Once installed and configured, you can access the Enthusiast plugin in your Medusa Admin:
+- Main Enthusiast Page: Navigate to the "Enthusiast" section in the admin sidebar
+- Settings: Go to Settings -> Enthusiast to manage datasets and configurations
