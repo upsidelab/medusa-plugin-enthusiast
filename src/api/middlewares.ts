@@ -7,14 +7,14 @@ const upload = multer()
 export default defineMiddlewares({
   routes: [
     {
-      matcher: "/*",
+      matcher: "/admin/enthusiast/conversations/:id",
       middlewares: [
         // @ts-ignore
         upload.single("file"),
       ],
     },
     {
-      matcher: "/enthusiast/datasets",
+      matcher: "/admin/enthusiast/datasets",
       method: "POST",
       middlewares: [
         validateAndTransformBody(PostCreateDatasetSchema),
