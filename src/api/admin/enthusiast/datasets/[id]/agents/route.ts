@@ -1,9 +1,9 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
 import { ENTHUSIAST_MODULE } from "../../../../../../modules/enthusiast"
 import EnthusiastService from "../../../../../../modules/enthusiast/service";
-import {withEnthusiastErrorHandling} from "../../../../../../api/wrappers";
+import {withErrorHandler} from "../../../../../../api/wrappers";
 
-export const GET = withEnthusiastErrorHandling(async (
+export const GET = withErrorHandler(async (
   req: MedusaRequest,
   res: MedusaResponse
 ) => {

@@ -165,8 +165,8 @@ uploadFile = async (conversationId: number, file: Express.Multer.File): Promise<
       type: "secret",
       created_by: "enthusiast-plugin",
     })
+    //todo add proper URL
     const plugin = await this.apiClient().dataSets().addDataSetProductSource(dataset.external_id, this.options_.enthusiastMedusaSourcePluginName, {api_key:apiKey.token ,base_url:"http://host.docker.internal:9000"})
-    this.logger_.info(JSON.stringify(plugin))
     await this.updateEnthusiastDatasets({id:dataset.id, is_connected:true, plugin_id:plugin.id, task_id: plugin.task_id, sync_status: SyncStatus.PROCESSING, api_key_id: apiKey.id})
     await syncDatasetStatusWorkflow(container).run({input: {datasetId: dataset.id}})
 
@@ -211,7 +211,6 @@ uploadFile = async (conversationId: number, file: Express.Multer.File): Promise<
     container: MedusaContainer,
     @MedusaContext() sharedContext?: Context<EntityManager>
   ): Promise<void> {
-    this.logger_.info(`DATASET_ID: ${datasetId}`)
     await this.updateEnthusiastDatasets({selector: {}, data: {is_active: false}}, sharedContext)
     await this.updateEnthusiastDatasets({id: datasetId, is_active:true}, sharedContext)
   }
@@ -222,7 +221,6 @@ uploadFile = async (conversationId: number, file: Express.Multer.File): Promise<
     container: MedusaContainer,
     @MedusaContext() sharedContext?: Context<EntityManager>
   ) {
-    this.logger_.info(`DATASET_ID: ${datasetId}`)
     return await this.activateDataset_(datasetId, container, sharedContext)
   }
 

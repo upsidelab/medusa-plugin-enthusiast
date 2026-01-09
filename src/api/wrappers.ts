@@ -9,7 +9,7 @@ export type MedusaHandler = (
 
 const DEFAULT_ENTHUSIAST_ERROR_MESSAGE = "Unexpected Enthusiast error occurred."
 
-export function withEnthusiastErrorHandling(handler: MedusaHandler): MedusaHandler {
+export function withErrorHandler(handler: MedusaHandler): MedusaHandler {
   return async (req, res) => {
     try {
       await handler(req, res)

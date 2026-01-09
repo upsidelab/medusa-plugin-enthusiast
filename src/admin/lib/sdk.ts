@@ -41,10 +41,3 @@ export const enthusiastAdminSdk = new CustomMedusa({
         type: "session",
     },
 })
-export const adminSdk = new Medusa({
-    baseUrl: getBackendUrl(),
-    debug: true,
-    auth: {
-        type: "session",
-    },
-})

@@ -1,4 +1,4 @@
-import {adminSdk, enthusiastAdminSdk} from "./sdk";
+import {enthusiastAdminSdk} from "./sdk";
 import {
   Conversation,
   CreateConversationPayload,
@@ -174,20 +174,20 @@ export class AdminEnthusiastConversationsApiClient {
 
 export class AdminDataSetsApiClient {
   async getInternalDataSets(): Promise<EnthusiastDatasetType[]> {
-    return await  adminSdk.client.fetch(
+    return await enthusiastAdminSdk.client.fetch(
       `/datasets`
     ) as EnthusiastDatasetType[];
   }
   async connectDatasets(datasetId: string): Promise<void> {
-    return await adminSdk.client.fetch(
-      `/datasets/${datasetId}/connect`,
-        {
-          method: 'POST',
-        }
+    return await enthusiastAdminSdk.client.fetch(
+    `/datasets/${datasetId}/connect`,
+      {
+        method: 'POST',
+      }
     );
   }
   async synchronizeDatasets(datasetId: string): Promise<void> {
-    return await adminSdk.client.fetch(
+    return await enthusiastAdminSdk.client.fetch(
       `/datasets/${datasetId}/synchronize`,
         {
           method: 'POST',
@@ -196,7 +196,7 @@ export class AdminDataSetsApiClient {
   }
 
   async setAsActive(datasetId: string): Promise<void> {
-    return await adminSdk.client.fetch(
+    return await enthusiastAdminSdk.client.fetch(
       `/datasets/${datasetId}/activate`,
         {
           method: 'POST',

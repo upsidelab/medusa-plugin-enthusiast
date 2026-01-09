@@ -8,7 +8,7 @@ import { MessageError } from "./message-error";
 import { MessageBubbleTyping } from "./message-bubble-typing";
 import {ChatWindow} from "./chat-window";
 import { adminApiClient } from "../../admin/lib/admin-client";
-import { adminSdk } from "../../admin/lib/sdk";
+import { enthusiastAdminSdk } from "../../admin/lib/sdk";
 import {AgentDetails} from "../../modules/enthusiast/api/types/agent";
 import {TaskHandle, Conversation as ConversationSchema} from "../../modules/enthusiast/api/types/conversation";
 
@@ -201,7 +201,7 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
         abortStreamRef.current = null;
       }
 
-      const { stream, abort } = await adminSdk.client.fetchStream(`/enthusiast/conversations/${conversationId}/stream`);
+      const { stream, abort } = await enthusiastAdminSdk.client.fetchStream(`/enthusiast/conversations/${conversationId}/stream`);
 
       if (!stream) {
         usePolling.current = true;
