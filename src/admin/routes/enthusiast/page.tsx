@@ -14,3 +14,6 @@ export const config = defineRouteConfig({
 })
 
 export default EnthusiastPage
+export const handle = {
+  breadcrumb: () => "Enthusiast",
+}

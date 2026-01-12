@@ -3,13 +3,15 @@ import {
     createDataTableColumnHelper,
     DataTable,
     Heading,
+    Label,
+    RadioGroup,
     Text,
     useDataTable,
 } from "@medusajs/ui"
 import {useEffect, useState} from "react";
 import {adminApiClient} from "../../admin/lib/admin-client";
 import {EnthusiastDatasetType} from "../../admin/lib/types";
-import {CircleCheckBig, Plus, RefreshCw} from "lucide-react";
+import {RefreshCw} from "lucide-react";
 import {ActionMenu} from "../../components/admin/action-menu";
 import {ColumnHeaderWithTooltip} from "../../components/admin/column-with-tooltip";
 import {Spinner, SquareGreenSolid, SquareRedSolid} from "@medusajs/icons";
@@ -49,21 +51,31 @@ export const DatasetTable = () => {
       columnHelper.accessor("is_active", {
         header: () => {
             return (
-                <ColumnHeaderWithTooltip name="Active" tooltip="Active dataset will be used in all chats"/>
+                <ColumnHeaderWithTooltip name="Active dataset" tooltip="Active dataset will be used in all chats"/>
             )
         },
-        cell: ({getValue}) => {
-            return getValue() ? (<SquareGreenSolid />) : (<SquareRedSolid />)
-        }
-      }),
-      columnHelper.accessor("is_connected", {
-        header: () => {
+        cell: ({ getValue, row }) => {
+            const isChecked = getValue()
             return (
-                <ColumnHeaderWithTooltip name="Connected" tooltip="Determines if Enthusiast dataset has added Medusa products source."/>
-            )
-        },
-        cell: ({getValue}) => {
-            return getValue() ? (<SquareGreenSolid />) : (<SquareRedSolid />)
+        <RadioGroup
+          onValueChange={async () => {
+              setIsLoading(true)
+              await adminApiClient.dataSets().setAsActive(row.original.id)
+              setRefetch(true)
+              setIsLoading(false)
+          }}
+        >
+        <div className="flex items-center gap-x-3">
+          <RadioGroup.Item
+            value={row.original.id}
+            id={`radio_${row.original.id}`}
+            checked={isChecked}
+          />
+          <Label htmlFor={`radio_${row.original.id}`} weight="plus">Active</Label>
+        </div>
+
+        </RadioGroup>
+      )
         }
       }),
       columnHelper.accessor("sync_status", {
@@ -83,24 +95,6 @@ export const DatasetTable = () => {
               groups={[
                 {
                   actions: [
-                    {
-                      icon: <CircleCheckBig />,
-                      disabled: !dataset.is_connected || dataset.is_active,
-                      label: "Set as active",
-                      onClick: async () => {
-                          await adminApiClient.dataSets().setAsActive(dataset.id)
-                          setRefetch(true)
-                      }
-                    },
-                    {
-                      icon: <Plus />,
-                      disabled: dataset.is_connected,
-                      label: "Connect",
-                      onClick: async () => {
-                          await adminApiClient.dataSets().connectDatasets(dataset.id)
-                          setRefetch(true)
-                      }
-                    },
                     {
                       icon: <RefreshCw />,
                       label: "Synchronize",
@@ -134,7 +128,6 @@ export const DatasetTable = () => {
 
       return (
           <Container>
-
               <div>
                 <DataTable instance={table}>
                   <DataTable.Toolbar className="flex flex-col items-start justify-between gap-2 md:flex-row md:items-center">

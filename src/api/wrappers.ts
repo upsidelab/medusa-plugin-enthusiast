@@ -1,6 +1,7 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import {EnthusiastAPIError} from "../modules/enthusiast/api/client";
 import {MedusaError} from "@medusajs/utils";
+import {EnthusiastAPIError} from "../modules/enthusiast/api/client";
+import {EnthusiastServiceError} from "../modules/enthusiast/service";
 
 export type MedusaHandler = (
   req: MedusaRequest,
@@ -14,7 +15,7 @@ export function withErrorHandler(handler: MedusaHandler): MedusaHandler {
     try {
       await handler(req, res)
     } catch (error: any) {
-      const logger = req.scope?.resolve?.("logger")
+      const logger = req.scope.resolve("logger")
       if (error instanceof EnthusiastAPIError) {
         logger.error(`Enthusiast API error: ${error.message}, ${error.body}`)
         let errorType = MedusaError.Types.UNEXPECTED_STATE
@@ -29,6 +30,9 @@ export function withErrorHandler(handler: MedusaHandler): MedusaHandler {
         }
 
         throw new MedusaError(errorType, errorMessage)
+      }
+      if (error instanceof EnthusiastServiceError) {
+        throw new MedusaError(MedusaError.Types.UNEXPECTED_STATE,  error.message)
       }
       throw error
     }

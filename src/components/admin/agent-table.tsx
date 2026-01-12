@@ -13,6 +13,7 @@ import {adminApiClient} from "../../admin/lib/admin-client";
 import {Agent} from "../../modules/enthusiast/api/types/agent";
 import {EnthusiastDatasetType} from "@/admin/lib/types";
 import {LoadingSpinner} from "../../components/utils/spinner";
+import {CogSixTooth} from "@medusajs/icons";
 
 const columnHelper = createDataTableColumnHelper<Agent>()
 
@@ -103,8 +104,10 @@ export const AgentTable = () => {
         <DataTable instance={table}>
           <DataTable.Toolbar className="flex flex-col items-start justify-between gap-2 md:flex-row md:items-center">
             <Heading>Agents</Heading>
-            <div className="flex gap-2">
-            </div>
+            <Button variant="secondary" onClick={() => navigate("/enthusiast/settings")}>
+                <CogSixTooth />
+                Settings
+            </Button>
           </DataTable.Toolbar>
           <DataTable.Table />
         </DataTable>

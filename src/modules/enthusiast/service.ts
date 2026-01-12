@@ -20,12 +20,20 @@ import syncDatasetStatusWorkflow from "../../workflows/check-sync-status";
 import {MedusaContainer} from "@medusajs/medusa";
 import { Context } from "@medusajs/framework/types"
 import { EntityManager } from "@medusajs/framework/mikro-orm/knex"
-import {CreateDataSetPayload} from "../../modules/enthusiast/api/types/dataset";
+import {CreateDataSetPayload, DataSet} from "../../modules/enthusiast/api/types/dataset";
 import {WebsocketHandler} from "../../modules/enthusiast/websocket";
 
 type InjectedDependencies = {
   logger: Logger
   configModule: ConfigModule
+}
+
+export class EnthusiastServiceError extends Error {
+  constructor(
+    public message: string
+  ) {
+    super(message);
+  }
 }
 
 
@@ -153,9 +161,14 @@ uploadFile = async (conversationId: number, file: Express.Multer.File): Promise<
 
   }
 
-  connectDatasets = async (datasetsId: string, container: MedusaContainer): Promise<void> => {
-    const apiKeyModuleService = container.resolve(Modules.API_KEY)
-    const datasets = await this.listEnthusiastDatasets({id: datasetsId, is_connected: false})
+  @InjectTransactionManager()
+  protected async connectDatasets_(
+    datasetId: string,
+    container: MedusaContainer,
+    @MedusaContext() sharedContext?: Context<EntityManager>
+  ): Promise<void> {
+      const apiKeyModuleService = container.resolve(Modules.API_KEY)
+    const datasets = await this.listEnthusiastDatasets({id: datasetId, is_connected: false})
     if (!datasets || !datasets.length) {
       return
     }
@@ -169,8 +182,18 @@ uploadFile = async (conversationId: number, file: Express.Multer.File): Promise<
     const plugin = await this.apiClient().dataSets().addDataSetProductSource(dataset.external_id, this.options_.enthusiastMedusaSourcePluginName, {api_key:apiKey.token ,base_url:"http://host.docker.internal:9000"})
     await this.updateEnthusiastDatasets({id:dataset.id, is_connected:true, plugin_id:plugin.id, task_id: plugin.task_id, sync_status: SyncStatus.PROCESSING, api_key_id: apiKey.id})
     await syncDatasetStatusWorkflow(container).run({input: {datasetId: dataset.id}})
-
   }
+
+  @InjectManager()
+  async connectDatasets(
+    datasetId: string,
+    container: MedusaContainer,
+    @MedusaContext() sharedContext?: Context<EntityManager>
+  ): Promise<void> {
+    return await this.connectDatasets_(datasetId, container, sharedContext)
+  }
+
+
   synchronizeDatasets = async (datasetId: string, container: MedusaContainer): Promise<void> => {
     const datasets = await this.listEnthusiastDatasets({id: datasetId, is_connected: true, plugin_id:{$ne: null}})
     if (!datasets || !datasets.length) {
@@ -181,6 +204,20 @@ uploadFile = async (conversationId: number, file: Express.Multer.File): Promise<
 
     await this.updateEnthusiastDatasets({id:dataset.id, task_id: task_id, sync_status: SyncStatus.PROCESSING})
     await syncDatasetStatusWorkflow(container).run({input: {datasetId: dataset.id}})
+  }
+
+  checkDataset = async(datasetId: string): Promise<void> => {
+    const dataset = await this.retrieveEnthusiastDataset(datasetId)
+    if (!dataset.is_connected) {
+      throw new EnthusiastServiceError(`Dataset not connected.`)
+    }
+    if (!dataset.plugin_id) {
+      throw new EnthusiastServiceError(`Dataset has not plugin id assigned.`)
+    }
+    if (!dataset.api_key_id) {
+      throw new EnthusiastServiceError(`Dataset has not api key id assigned.`)
+    }
+    await this.apiClient().dataSets().getDataSet(dataset.external_id)
   }
 
   datasetCreate = async(dataset: CreateDataSetPayload) => {
@@ -220,7 +257,12 @@ uploadFile = async (conversationId: number, file: Express.Multer.File): Promise<
     datasetId: string,
     container: MedusaContainer,
     @MedusaContext() sharedContext?: Context<EntityManager>
-  ) {
+  ): Promise<void> {
+    const dataset = await this.retrieveEnthusiastDataset(datasetId)
+    if (!dataset.is_connected) {
+      await this.connectDatasets(datasetId, container)
+    }
+    await this.checkDataset(datasetId)
     return await this.activateDataset_(datasetId, container, sharedContext)
   }
 
