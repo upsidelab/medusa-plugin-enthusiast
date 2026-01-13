@@ -3,25 +3,24 @@ import {adminApiClient} from "../../admin/lib/admin-client";
 import {Container} from "@medusajs/ui";
 import {AgentTable} from "./agent-table";
 import {LoadingSpinner} from "../../components/utils/spinner";
+import {Error} from "../../components/ui/error";
 
 export const EnthusiastMain = () => {
   const [isConnected, setIsConnected] = useState<boolean | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let mounted = true
     const fetchStatus = async () => {
       try {
         setIsLoading(true)
-        const res = await adminApiClient.getStatus()
-
+        await adminApiClient.getStatus()
         if (mounted) {
-          setIsConnected(res?.connected ?? false)
+          setIsConnected(true)
         }
       } catch (err: any) {
         if (mounted) {
-          setError("Failed to load status")
+          setIsConnected(false)
         }
       } finally {
         if (mounted) {
@@ -42,25 +41,12 @@ export const EnthusiastMain = () => {
       <LoadingSpinner/>
     )
   }
-
-  if (error) {
+  if (!isConnected) {
     return (
-      <Container className="p-4 text-red-600">
-        <p>{error}</p>
-      </Container>
+        <Error heading="Something went wrong." content="Please check your Enthusiast integration." />
     )
   }
-
   return (
-    <Container className="p-4">
-      {isConnected ?
-        <AgentTable />
-      : (
-        <div className="p-4 border rounded bg-red-50">
-          <h2 className="text-lg font-medium">Not connected</h2>
-          <p>Please connect your Enthusiast integration.</p>
-        </div>
-      )}
-    </Container>
+      <AgentTable />
   )
 }

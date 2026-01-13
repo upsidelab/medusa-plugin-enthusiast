@@ -3,7 +3,6 @@ import { ChannelsSolid } from "@medusajs/icons"
 import {EnthusiastMain} from "../../../components/admin/main.tsx";
 
 
-
 const EnthusiastPage = () => {
   return <EnthusiastMain />
 }

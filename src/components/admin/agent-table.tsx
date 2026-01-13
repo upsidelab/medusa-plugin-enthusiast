@@ -1,21 +1,20 @@
 import {
-    Container,
     createDataTableColumnHelper,
     DataTable,
     Heading,
     useDataTable,
-    Text,
-    Button
+    Button,
+    Container
 } from "@medusajs/ui"
-import {Link, useNavigate} from "react-router-dom";
+import {useNavigate} from "react-router-dom";
 import {useEffect, useState} from "react";
 import {adminApiClient} from "../../admin/lib/admin-client";
-import {Agent} from "../../modules/enthusiast/api/types/agent";
+import {AgentDetails} from "../../modules/enthusiast/api/types/agent";
 import {EnthusiastDatasetType} from "@/admin/lib/types";
 import {LoadingSpinner} from "../../components/utils/spinner";
 import {CogSixTooth} from "@medusajs/icons";
 
-const columnHelper = createDataTableColumnHelper<Agent>()
+const columnHelper = createDataTableColumnHelper<AgentDetails>()
 
 const columns = [
   columnHelper.accessor("name", {
@@ -23,15 +22,19 @@ const columns = [
     enableSorting: true,
     sortLabel: "Name",
   }),
+  columnHelper.accessor("description", {
+    header: "Description",
+  }),
+
 ]
 
 
 export const AgentTable = () => {
     const [dataset, setDataset] = useState<EnthusiastDatasetType | null>(null)
     const [isLoading, setIsLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
-    const [agents, setAgents] = useState<Agent[]>([])
+    const [agents, setAgents] = useState<AgentDetails[]>([])
     const navigate = useNavigate()
+
     useEffect(() => {
         const fetchDatasetAgents = async () => {
             if (!dataset) {
@@ -42,15 +45,19 @@ export const AgentTable = () => {
                 setIsLoading(true)
                 const res = await adminApiClient.agents().getDatasetAgents(dataset.external_id)
                 const availableAgents = res.filter(agent => !agent.corrupted)
-                setAgents(availableAgents)
-              } catch (e) {
-                setError("Failed to load datasets")
+                const availableAgentsDetails = await Promise.all(
+                    availableAgents.map(agent => {
+                        return adminApiClient.agents().getAgentById(agent.id)
+                    })
+                )
+                setAgents(availableAgentsDetails)
               } finally {
                 setIsLoading(false)
               }
             }
         fetchDatasetAgents()
     }, [dataset]);
+
     useEffect(() => {
         const fetchDataset = async () => {
             try {
@@ -60,14 +67,13 @@ export const AgentTable = () => {
                 if (activeDataset.length) {
                     setDataset(activeDataset[0])
                 }
-              } catch (e) {
-                setError("Failed to load dataset")
               } finally {
                 setIsLoading(false)
               }
             }
         fetchDataset()
     }, []);
+
   const table = useDataTable({
     columns,
     data: agents || [],
@@ -81,27 +87,11 @@ export const AgentTable = () => {
         return (<LoadingSpinner />)
     }
     if (!dataset) {
-        return (
-            <Container className="divide-y p-0 px-6 py-4">
-                <Text>There are not available datasets, go to settings to configure it.</Text>
-              <Link to="/settings/enthusiast">
-                <Button variant="secondary" size="small">
-                  Go to Enthusiast Settings
-                </Button>
-              </Link>
-            </Container>
-        )
-    }
-    if (!agents || !agents.length) {
-        return (
-            <Container className="divide-y p-0 px-6 py-4">
-                <Text>There are not available datasets, go to settings to configure it.</Text>
-            </Container>
-        )
+        navigate("/enthusiast/settings")
     }
     return (
-      <div>
-        <DataTable instance={table}>
+    <Container className="p-4">
+        <DataTable instance={table} >
           <DataTable.Toolbar className="flex flex-col items-start justify-between gap-2 md:flex-row md:items-center">
             <Heading>Agents</Heading>
             <Button variant="secondary" onClick={() => navigate("/enthusiast/settings")}>
@@ -109,8 +99,15 @@ export const AgentTable = () => {
                 Settings
             </Button>
           </DataTable.Toolbar>
-          <DataTable.Table />
+          <DataTable.Table
+              emptyState={{
+                  empty: {
+                      heading: "No agents",
+                      description: "There is no agents for active dataset."
+                  }
+              }}
+          />
         </DataTable>
-      </div>
+    </Container>
   )
 }

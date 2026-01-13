@@ -8,5 +8,6 @@ export const GET = withErrorHandler(async(
   res: MedusaResponse
 ) => {
   const enthusiastService: EnthusiastService = req.scope.resolve(ENTHUSIAST_MODULE)
-  res.status(200).json({connected: enthusiastService.isConnected()});
+  await enthusiastService.isConnected()
+  res.status(200).json({});
 })

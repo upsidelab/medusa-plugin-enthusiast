@@ -1,4 +1,4 @@
-import {useLocation, UIMatch, useNavigate, useParams, LoaderFunctionArgs} from "react-router-dom";
+import {UIMatch, useNavigate, useParams, LoaderFunctionArgs} from "react-router-dom";
 import {defineRouteConfig} from "@medusajs/admin-sdk";
 import {NewChat} from "../../../../../../components/chat/new-chat.tsx";
 import {Message} from "../../../../../../components/chat/message-composer.tsx";

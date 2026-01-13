@@ -14,7 +14,7 @@ import {
   DocumentSourceResponse,
   ProductSourceResponse, SyncResponse
 } from "./types/dataset";
-import {ProvidersConfig, ProvidersConfigResponse} from "./types/config";
+import {PluginsConfig, ProvidersConfig, ProvidersConfigResponse} from "./types/config";
 
 export class EnthusiastAPIError extends Error {
   constructor(
@@ -401,10 +401,7 @@ export class AgentsApiClient extends BaseApiClient {
  export class AccountsApiClient extends BaseApiClient {
   async me(): Promise<Account> {
     const response = await this.sendRequest(`${this.apiBase}/api/account`, this._requestConfiguration());
-        if (!response.ok) {
-            throw new Error(`Failed to fetch account: ${response.statusText}`);
-        }
-        return await response.json() as Account;
+    return await response.json() as Account;
   }
  }
  export class ConfigApiClient extends BaseApiClient {
@@ -426,6 +423,11 @@ export class AgentsApiClient extends BaseApiClient {
   async getEmbeddingModelsForProvider(name: string): Promise<string[]> {
     const response = await this.sendRequest(`${this.apiBase}/api/config/embedding_providers/${name}`, this._requestConfiguration());
     return await response.json() as string[];
+  }
+
+  async getAvailableProductSources(): Promise<PluginsConfig> {
+    const response = await this.sendRequest(`${this.apiBase}/api/plugins/product_source_plugins?page_size=100`, this._requestConfiguration());
+    return await response.json() as PluginsConfig;
   }
 }
 

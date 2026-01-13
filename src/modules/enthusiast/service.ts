@@ -1,7 +1,7 @@
 import {InjectManager, InjectTransactionManager, MedusaContext, MedusaService, Modules} from "@medusajs/framework/utils"
 import { Logger } from "@medusajs/framework/types"
 import {PluginOptions} from "../../settings";
-import {ApiClient} from "./api/client";
+import {ApiClient, EnthusiastAPIError} from "./api/client";
 import {
   Conversation,
   FeedbackData,
@@ -54,11 +54,11 @@ export default class EnthusiastService extends MedusaService({EnthusiastDataset}
   }
 
   isConnected = async () => {
-    try {
-      await this.apiClient().accounts().me();
-      return {isConnected: true}
-    } catch {
-      return {isConnected: false}
+    await this.apiClient().accounts().me();
+    const availablePlugins = await this.apiClient().config().getAvailableProductSources()
+    const pluginExists = availablePlugins.choices.some(plugin => plugin.name === this.options_.enthusiastMedusaSourcePluginName)
+    if (!pluginExists) {
+      throw new EnthusiastServiceError(`Plugin ${this.options_.enthusiastMedusaSourcePluginName} does not exist.`)
     }
   }
   listAgents = async (dataSetId: number) => {

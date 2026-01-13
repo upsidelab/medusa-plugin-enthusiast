@@ -139,7 +139,14 @@ export const DatasetTable = () => {
                     </div>
                     <DatasetCreateForm setRefetch={setRefetch} />
                   </DataTable.Toolbar>
-                  <DataTable.Table />
+                  <DataTable.Table
+                      emptyState={{
+                          empty: {
+                              heading: "No Datasets",
+                              description: "There is no datasets available."
+                          }
+                      }}
+                    />
                 </DataTable>
               </div>
           </Container>
