@@ -20,9 +20,10 @@ import {XMarkMini} from "@medusajs/icons";
 
 type DatasetCreateFormProps = {
     setRefetch?: React.Dispatch<React.SetStateAction<boolean>>;
+    anyActive: boolean;
 }
 
-export const DatasetCreateForm = ({ setRefetch }: DatasetCreateFormProps) => {
+export const DatasetCreateForm = ({ setRefetch, anyActive }: DatasetCreateFormProps) => {
   const [providersConfig, setProvidersConfig] = useState<ProvidersConfig | undefined>(undefined);
   const [languageModelNames, setLanguageModelNames] = useState<string[] | undefined>(undefined);
   const [embeddingModels, setEmbeddingModels] = useState<string[] | undefined>(undefined);
@@ -93,7 +94,10 @@ export const DatasetCreateForm = ({ setRefetch }: DatasetCreateFormProps) => {
 
   const handleSubmit = form.handleSubmit(async (payload) => {
     const dataset = await adminApiClient.enthusiastDatasets().create(payload)
-    await adminApiClient.dataSets().setAsActive(dataset.id);
+    if (!anyActive) {
+        await adminApiClient.dataSets().setAsActive(dataset.id);
+    }
+
     if (setRefetch) {
       setRefetch(true)
     }
