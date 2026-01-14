@@ -51,6 +51,8 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
   const streamingEnabled = useRef<boolean>(false);
 
   const initialized = useRef(false);
+  const currentTaskHandleRef = useRef<TaskHandle | null>(null);
+  const lastAddedMessageIdRef = useRef<number | null>(null);
 
   const lastMessageRef = useRef<HTMLDivElement | null>(null);
   const abortStreamRef = useRef<(() => void) | null>(null);
@@ -76,23 +78,28 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
 
   useEffect(() => {
     const loadMessages = async () => {
-      const initChat = pendingMessage && !initialized.current;
-
-      if (initChat) {
-        initialized.current = true;
-        await onMessageComposerSubmit(pendingMessage);
-      }
-
       const conversation = await adminApiClient.conversations().getConversation(conversationId);
       setConversation(conversation);
       setAgentId(conversation.agent?.id);
 
-      if (pendingMessage) {
-        return;
-      }
-
       const initialMessages = conversation.history as MessageProps[];
       setMessages(initialMessages);
+
+      // Only send pendingMessage if it's new and not already in history
+      if (pendingMessage && !initialized.current) {
+        // Check if this message already exists in the conversation history
+        const messageExists = initialMessages.some(
+          msg => msg.type === "human" && msg.text === pendingMessage.text
+        );
+        
+        if (!messageExists) {
+          initialized.current = true;
+          await onMessageComposerSubmit(pendingMessage);
+        } else {
+          // Message already exists, just mark as initialized
+          initialized.current = true;
+        }
+      }
 
       scrollToLastMessage(100);
     };
@@ -246,15 +253,42 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
       return;
     }
 
+    // Only process if this is the current task
+    if (currentTaskHandleRef.current?.task_id !== taskHandle.task_id) {
+      return;
+    }
+
     try {
       const response = await adminApiClient.conversations().fetchResponseMessage(conversationId!, taskHandle);
 
       if (response) {
+        // Check if we've already added this message
+        if (response.id && response.id === lastAddedMessageIdRef.current) {
+          setIsAgentLoading(false);
+          setIsLoading(false);
+          return;
+        }
+
         setIsAgentLoading(false);
-        setMessages((prev) => [
-          ...prev,
-          { type: "ai", text: response.text, id: response.id }
-        ]);
+        setMessages((prev) => {
+          // Check if this message already exists (by ID)
+          const messageExists = prev.some(
+            msg => msg.type === "ai" && msg.id === response.id
+          );
+          
+          if (messageExists) {
+            return prev;
+          }
+          
+          return [
+            ...prev,
+            { type: "ai", text: response.text, id: response.id }
+          ];
+        });
+        
+        if (response.id) {
+          lastAddedMessageIdRef.current = response.id;
+        }
         setIsLoading(false);
         scrollToLastMessage();
       } else {
@@ -292,6 +326,7 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
     addUserMessage(message.text);
 
     const taskHandle = await adminApiClient.conversations().sendMessage(conversationId, dataSetId!, message.text, streamingEnabled.current, message.files.map(f => f.id));
+    currentTaskHandleRef.current = taskHandle;
     usePolling.current = !taskHandle.streaming;
     if (taskHandle.streaming) {
       const connected = await createSseConnection(conversationId);
@@ -313,13 +348,13 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
   };
 
   return (
-    <PageMain className="h-full py-0">
+    <PageMain>
       {conversation &&
         <>
           <PageHeading
               title={pendingMessage?.text || conversation.summary!}
               description={`Chat with ${conversation.agent.name}`}
-              className="sticky top-0 pt-4 bg-white z-10"
+              className="sticky top-0 pt-4 bg-background z-10 px-8"
           >
             <Button className="ml-auto mr-0" variant="outline" onClick={() => navigate(`/enthusiast/dataset/${dataSetId}/chat?agent=${encodeURIComponent(conversation.agent.id)}`)}>
               <PlusIcon />

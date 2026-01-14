@@ -3,8 +3,10 @@ import {defineRouteConfig} from "@medusajs/admin-sdk";
 import {NewChat} from "../../../../../../components/chat/new-chat.tsx";
 import {Message} from "../../../../../../components/chat/message-composer.tsx";
 import {enthusiastAdminSdk} from "../../../../../lib/sdk.ts";
-import {AgentDetails} from "../../../../../../modules/enthusiast/api/types/agent.ts";
+import {Agent, AgentDetails} from "../../../../../../modules/enthusiast/api/types/agent.ts";
 import {Conversation} from "../../../../../../modules/enthusiast/api/types/conversation.ts";
+import {SingleColumnLayout} from "../../../../../../components/ui/single-column.tsx";
+
 
 
 export type OnPendingMessage = (message: Message, conversationId: number) => void;
@@ -20,7 +22,11 @@ const EnthusiastNewChatPage = () => {
       }
     });
   }
-  return (<NewChat onPendingMessage={onPendingMessage}/>)
+  return (
+        <SingleColumnLayout>
+          <NewChat onPendingMessage={onPendingMessage}/>
+        </SingleColumnLayout>
+  )
 }
 
 export const config = defineRouteConfig({})
@@ -36,11 +42,14 @@ export async function loader({request, params}: LoaderFunctionArgs) {
   const url = new URL(requestCopy.url)
   const searchParams = url.searchParams
   const agentId = searchParams.get("agent")
+  if (!agentId) {
+      return null
+  }
   return await enthusiastAdminSdk.client.fetch<AgentDetails>(
             `/enthusiast/agents/${agentId}`
         );
 }
 
 export const handle = {
-  breadcrumb: ({data}: UIMatch<AgentDetails>) => data.name,
+  breadcrumb: ({data}: UIMatch<AgentDetails | Agent>) => data.name || "Agent",
 }

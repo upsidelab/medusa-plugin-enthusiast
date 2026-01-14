@@ -49,7 +49,7 @@ npx medusa db:migrate
 Run command on your Enthusiast instance or go to `Manage -> Service accounts` in Enthusiast to generate Admin permission service account token.
 Command:
 ```bash
-python manage.py createserviceaccount -n <name of your integration> --admin
+python manage.py createadminserviceaccount -n <name of your integration>
 ```
 
 ## Usage

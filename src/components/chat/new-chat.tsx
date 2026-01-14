@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import {useLocation, useNavigate, useParams} from "react-router-dom";
+import {Navigate, useLocation, useNavigate, useParams} from "react-router-dom";
 import {Agent, AgentDetails} from "../../modules/enthusiast/api/types/agent";
 import {Message, OnSubmit} from "./message-composer";
 import {PageMain} from "../utils/page-main";
@@ -7,25 +7,31 @@ import {PageHeading} from "../utils/page-heading";
 import {ChatWindow} from "./chat-window";
 import {adminApiClient} from "../../admin/lib/admin-client";
 import {LoadingSpinner} from "../../components/utils/spinner";
+import {toast} from "@medusajs/ui";
 
 interface NewChatProps {
   onPendingMessage: (message: Message, conversationId: number)=>void;
 }
 
 export function NewChat({ onPendingMessage }: NewChatProps) {
-  const { dataSetId: dataset } = useParams();
-  const location = useLocation();
-  const queryParams = new URLSearchParams(location.search);
-  const agent = queryParams.get("agent");
+    const { dataSetId: dataset } = useParams();
+    const location = useLocation();
 
-  const agentId = agent ? parseInt(agent, 10) : null;
-  const datasetId = dataset ? parseInt(dataset, 10) : null;
+    const queryParams = new URLSearchParams(location.search);
+    const agent = queryParams.get("agent");
+    if (!agent) {
+    toast.info("No agent.", {
+      description: "Choose an agent to start a chat."
+    });
+
+    return <Navigate to="/enthusiast" replace />;
+  }
+    const agentId = agent ? parseInt(agent, 10) : null;
+    const datasetId = dataset ? parseInt(dataset, 10) : null;
 
     const [isLoading, setIsLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
     const [agents, setAgents] = useState<Agent[]>([])
     const [agentDetails, setAgentDetails] = useState<AgentDetails | null>(null)
-    const navigate = useNavigate()
 
     useEffect(() => {
         const fetchDatasetAgents = async () => {
@@ -33,8 +39,6 @@ export function NewChat({ onPendingMessage }: NewChatProps) {
                 setIsLoading(true)
                 const res = await adminApiClient.agents().getDatasetAgents(datasetId!)
                 setAgents(res)
-              } catch (e) {
-                setError("Failed to load datasets")
               } finally {
                 setIsLoading(false)
               }
@@ -44,8 +48,6 @@ export function NewChat({ onPendingMessage }: NewChatProps) {
                 setIsLoading(true)
                 const res = await adminApiClient.agents().getAgentById(agentId!)
                 setAgentDetails(res)
-              } catch (e) {
-                setError("Failed to load datasets")
               } finally {
                 setIsLoading(false)
               }
@@ -95,15 +97,15 @@ export function NewChat({ onPendingMessage }: NewChatProps) {
   }
 
   return (
-    <PageMain className="h-full">
+    <PageMain>
       <PageHeading
         title={emptyState && emptyState.title || selectedAgent!.name}
         description={emptyState && emptyState.description || 'Start a new conversation.'}
-        className="sticky top-4 bg-white z-10"
+        className="sticky top-0 bg-background z-[1] px-8"
       />
       {
         emptyState ? (
-          <div className="flex flex-col h-full px-4 pt-4">
+          <div className="flex flex-col flex-1 overflow-y-auto px-4 pt-4">
             <div className="grow flex items-center justify-center">
               <div className="text-center space-y-4">
                 <h2 className="text-xl font-semibold text-gray-900">{emptyState.title}</h2>
@@ -111,8 +113,6 @@ export function NewChat({ onPendingMessage }: NewChatProps) {
                   {emptyState.description}
                 </p>
               </div>
-            </div>
-            <div className="bottom-0 sticky flex-shrink-0 bg-white pb-4">
             </div>
           </div>
         ) : (

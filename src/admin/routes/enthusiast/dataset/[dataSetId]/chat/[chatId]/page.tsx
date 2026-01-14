@@ -3,10 +3,15 @@ import {ChatSession} from "../../../../../../../components/chat/chat-session.tsx
 
 import {defineRouteConfig} from "@medusajs/admin-sdk";
 import {AgentDetails} from "../../../../../../../modules/enthusiast/api/types/agent.ts";
+import {SingleColumnLayout} from "../../../../../../../components/ui/single-column.tsx";
 
 const EnthusiastChatPage = () => {
   const { state } = useLocation();
-  return (<ChatSession pendingMessage={state?.pendingMessage} />)
+  return (
+      <SingleColumnLayout>
+        <ChatSession pendingMessage={state?.pendingMessage} />
+      </SingleColumnLayout>
+  )
 }
 
 export const config = defineRouteConfig({})

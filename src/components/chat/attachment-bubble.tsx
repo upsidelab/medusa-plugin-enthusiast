@@ -11,28 +11,28 @@ interface AttachmentBubbleProps {
 
 const getFileIcon = (contentType: string) => {
   if (contentType.startsWith('image/')) {
-    return <Image className="h-5 w-5" />;
+    return <Image className="h-5 w-5 text-muted-foreground" />;
   }
   if (contentType.includes('pdf') || contentType.includes('text')) {
-    return <FileText className="h-5 w-5" />;
+    return <FileText className="h-5 w-5 text-muted-foreground" />;
   }
-  return <File className="h-5 w-5" />;
+  return <File className="h-5 w-5 text-muted-foreground" />;
 };
 
 export function AttachmentBubble({ variant, message, inMessageGroup }: AttachmentBubbleProps ) {
   return (
     <BaseBubble variant={variant} hasBackground={false} className="px-0 py-0 min-w-[25%]" inMessageGroup={inMessageGroup}>
       <div
-        className={`flex items-center space-x-2 rounded-md border shadow-sm px-3 py-2`}
+        className={`flex items-center space-x-2 rounded-md border border-input bg-background shadow-sm px-3 py-2`}
       >
-        <div className="h-8 w-8 bg-gray-200 rounded flex items-center justify-center">
+        <div className="h-8 w-8 bg-muted rounded flex items-center justify-center">
           {getFileIcon(message.file_type)}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-medium truncate">
+          <div className="text-sm font-medium truncate text-foreground">
             {message.file_name}
           </div>
-          <div className="text-xs opacity-60">
+          <div className="text-xs text-muted-foreground">
             {message.file_type}
           </div>
         </div>

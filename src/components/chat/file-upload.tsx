@@ -110,22 +110,22 @@ export function FileUpload({
     <input {...getInputProps()} />
 
     {showUploadArea && (
-      <div className="space-y-3 absolute w-full h-full bg-white rounded-lg z-10">
+      <div className="space-y-3 absolute w-full h-full bg-background rounded-lg z-10">
         <div
           {...getRootProps()}
           className={cn(
             "relative h-full text-center flex flex-col justify-center transition-colors cursor-pointer",
-            "hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
-            isDragActive && "border-blue-500 bg-blue-50",
+            "hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+            isDragActive && "border-primary bg-primary/10",
             disabled && "opacity-50 cursor-not-allowed",
-            dragActive && "border-blue-500 bg-blue-50"
+            dragActive && "border-primary bg-primary/10"
           )}
           onDragEnter={() => setDragActive(true)}
           onDragLeave={() => setDragActive(false)}
         >
-        <Upload className="mx-auto h-6 w-6 text-gray-400 mb-2" />
-        <div className="text-sm text-gray-600">Drag and drop files here</div>
-        <div className="text-xs text-gray-500 mt-1">
+        <Upload className="mx-auto h-6 w-6 text-muted-foreground mb-2" />
+        <div className="text-sm text-foreground">Drag and drop files here</div>
+        <div className="text-xs text-muted-foreground mt-1">
           {isLoadingExtensions ? (
             'Loading supported file types...'
           ) : (

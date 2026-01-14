@@ -13,12 +13,12 @@ interface FileListProps {
 
 const getFileIcon = (file: File) => {
   if (file.type.startsWith('image/')) {
-    return <Image className="h-4 w-4" />;
+    return <Image className="h-4 w-4 text-muted-foreground" />;
   }
   if (file.type.includes('pdf') || file.type.includes('text')) {
-    return <FileText className="h-4 w-4" />;
+    return <FileText className="h-4 w-4 text-muted-foreground" />;
   }
-  return <File className="h-4 w-4" />;
+  return <File className="h-4 w-4 text-muted-foreground" />;
 };
 
 const formatFileSize = (bytes: number) => {
@@ -53,7 +53,7 @@ export function FileList({
       {uploadedFiles.length > 0 && uploadedFiles.map((uploadedFile) => (
         <div
           key={uploadedFile.id}
-          className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg border w-[260px]"
+          className="flex items-center justify-between px-3 py-2 bg-muted rounded-lg border border-input w-[260px]"
         >
           <div className="flex items-center space-x-3 flex-1 min-w-0">
             {uploadedFile.preview ? (
@@ -63,15 +63,15 @@ export function FileList({
                 className="h-8 w-8 object-cover rounded"
               />
             ) : (
-              <div className="h-8 w-8 bg-gray-200 rounded flex items-center justify-center">
+              <div className="h-8 w-8 bg-muted-foreground/20 rounded flex items-center justify-center">
                 {getFileIcon(uploadedFile.file)}
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <div className={`text-sm font-medium truncate ${uploadedFile.uploadError ? 'text-red-600' : 'text-gray-900'}`}>
+              <div className={`text-sm font-medium truncate ${uploadedFile.uploadError ? 'text-destructive' : 'text-foreground'}`}>
                 {uploadedFile.file.name}
               </div>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-muted-foreground">
                 {formatFileSize(uploadedFile.file.size)} • {fileStatus(uploadedFile)}
               </div>
             </div>
@@ -81,7 +81,7 @@ export function FileList({
             size="sm"
             onClick={() => handleFileRemove(uploadedFile.id)}
             disabled={disabled || uploadedFile.uploading}
-            className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600 ml-2"
+            className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive ml-2"
           >
             <X className="h-4 w-4" />
           </Button>

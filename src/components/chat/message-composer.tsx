@@ -259,7 +259,7 @@ const handleFilesChange = async (files: UploadedFile[]) => {
         }}
         className="flex w-full items-center space-x-2 relative"
       >
-        <div className={cn("relative flex-1 rounded-md border bg-white", showUploadArea && 'border-dashed')}>
+        <div className={cn("relative flex-1 rounded-md border bg-background", showUploadArea && 'border-dashed')}>
           {fileUploadEnabled && (
             <FileUpload
               onFilesChange={handleFilesChange}
@@ -295,7 +295,7 @@ const handleFilesChange = async (files: UploadedFile[]) => {
               }
             >
               {isLoading || uploadingFiles ? (
-                <Loader className="h-4 w-4 animate-spin text-gray-500" />
+                <Loader className="h-4 w-4 animate-spin text-muted-foreground" />
               ) : (
                 <Send className="h-4 w-4" />
               )}

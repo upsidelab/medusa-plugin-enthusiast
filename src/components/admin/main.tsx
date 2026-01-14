@@ -1,6 +1,5 @@
 import {useEffect, useState} from "react";
 import {adminApiClient} from "../../admin/lib/admin-client";
-import {Container} from "@medusajs/ui";
 import {AgentTable} from "./agent-table";
 import {LoadingSpinner} from "../../components/utils/spinner";
 import {Error} from "../../components/ui/error";

@@ -1,7 +1,5 @@
 import React from "react";
 import { MessageComposer } from "../../components/chat/message-composer";
-
-
 import type { OnSubmit } from "../../components/chat/message-composer";
 import {cn} from "../../admin/lib/utils";
 
@@ -27,9 +25,11 @@ export function ChatWindow({
   fileUploadEnabled
 }: ChatWindowProps) {
   return (
-    <div className={cn("flex flex-col h-full px-4", className)}>
-      {children}
-      <div className="bottom-0 sticky flex-shrink-0 pb-4">
+    <div className={cn("flex flex-col flex-1 overflow-y-auto", className)}>
+      <div className="flex-1 px-4">
+        {children}
+      </div>
+      <div className="flex-shrink-0 w-full px-8 pb-4">
         <MessageComposer
           onSubmit={onSubmit}
           isLoading={isLoading}

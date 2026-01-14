@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import {cn} from "../../admin/lib/utils";
+import {Container} from "@medusajs/ui";
 
 
 export interface PageMainProps {
@@ -9,9 +10,9 @@ export interface PageMainProps {
 
 export function PageMain({ children, className }: PageMainProps) {
   return (
-    <div className={cn("py-4 px-8", className)}>
+    <Container className={cn("flex flex-col divide-y p-0 h-full pt-3", className)}>
       {children}
-    </div>
+    </Container>
   )
 }
 
