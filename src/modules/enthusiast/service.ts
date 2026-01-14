@@ -105,7 +105,7 @@ export default class EnthusiastService extends MedusaService({EnthusiastDataset}
     return await this.apiClient().conversations().getSupportedFileTypes()
   }
 
-uploadFile = async (conversationId: number, file: Express.Multer.File): Promise<FileUploadResponse> => {
+  uploadFile = async (conversationId: number, file: Express.Multer.File): Promise<FileUploadResponse> => {
     const fileObj = new File(
       [file.buffer],
       file.originalname,
@@ -221,7 +221,9 @@ uploadFile = async (conversationId: number, file: Express.Multer.File): Promise<
   }
 
   datasetCreate = async(dataset: CreateDataSetPayload) => {
-    return await this.apiClient().dataSets().createDataSet(dataset)
+    const externalId = await this.apiClient().dataSets().createDataSet(dataset)
+    return await this.createEnthusiastDatasets({name: dataset.name, external_id: externalId})
+
   }
   getConfig = async() => {
     return await this.apiClient().config().getAvailableProviders()

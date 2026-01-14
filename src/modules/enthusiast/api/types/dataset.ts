@@ -6,7 +6,6 @@ export type DataSetResponse = {
   embedding_provider: string;
   embedding_model: string;
   embedding_vector_dimensions: number;
-  system_message: string;
 }
 
 export type CreateDataSetPayload = {
@@ -16,14 +15,12 @@ export type CreateDataSetPayload = {
   embedding_provider: string;
   embedding_model: string;
   embedding_vector_dimensions: number;
-  system_message: string;
 }
 export type UpdateDataSetPayload = {
   id: number | undefined;
   name: string;
   language_model_provider: string;
   language_model: string;
-  system_message: string;
 }
 
 export type ProductSourceResponse = {
