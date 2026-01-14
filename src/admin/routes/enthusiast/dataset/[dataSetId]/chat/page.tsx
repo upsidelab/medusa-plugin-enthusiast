@@ -4,6 +4,7 @@ import {NewChat} from "../../../../../../components/chat/new-chat.tsx";
 import {Message} from "../../../../../../components/chat/message-composer.tsx";
 import {enthusiastAdminSdk} from "../../../../../lib/sdk.ts";
 import {AgentDetails} from "../../../../../../modules/enthusiast/api/types/agent.ts";
+import {Conversation} from "../../../../../../modules/enthusiast/api/types/conversation.ts";
 
 
 export type OnPendingMessage = (message: Message, conversationId: number) => void;
@@ -26,8 +27,13 @@ export const config = defineRouteConfig({})
 
 export default EnthusiastNewChatPage
 
-export async function loader({request}: LoaderFunctionArgs) {
-  const url = new URL(request.url)
+export async function loader({request, params}: LoaderFunctionArgs) {
+  if (params.chatId) {
+    const conversation = await enthusiastAdminSdk.client.fetch<Conversation>(`/enthusiast/conversations/${params.chatId}`)
+    return conversation.agent
+  }
+  const requestCopy = request.clone()
+  const url = new URL(requestCopy.url)
   const searchParams = url.searchParams
   const agentId = searchParams.get("agent")
   return await enthusiastAdminSdk.client.fetch<AgentDetails>(

@@ -210,7 +210,7 @@ export class AdminEnthusiastDatasetsApiClient {
     return await enthusiastAdminSdk.client.fetch(`/enthusiast/datasets`)
   }
 
-  async create(payload: CreateDataSetPayload): Promise<number> {
+  async create(payload: CreateDataSetPayload): Promise<EnthusiastDatasetType> {
     return await enthusiastAdminSdk.client.fetch(`/enthusiast/datasets`, {
       method: "POST",
       body: payload,
