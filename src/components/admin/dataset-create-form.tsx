@@ -92,16 +92,18 @@ export const DatasetCreateForm = ({ setRefetch }: DatasetCreateFormProps) => {
 
 
   const handleSubmit = form.handleSubmit(async (payload) => {
-    const createdId = await adminApiClient.enthusiastDatasets().create(payload)
-    setFormOpen(false)
+    const dataset = await adminApiClient.enthusiastDatasets().create(payload)
+    await adminApiClient.dataSets().setAsActive(dataset.id);
     if (setRefetch) {
       setRefetch(true)
     }
     form.reset()
+    setFormOpen(false)
     toast.success("Success", {
-      description: `Dataset ${createdId} created successfully`,
+      description: `Dataset "${dataset.name}" created successfully`,
       position: "top-right",
     })
+
   })
 
   return (
