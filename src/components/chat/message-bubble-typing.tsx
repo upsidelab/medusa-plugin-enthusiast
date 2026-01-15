@@ -13,7 +13,9 @@ export function MessageBubbleTyping({ text }: MessageBubbleTypingProps) {
         <div className={styles.typingDot} />
         <div className={styles.typingDot} />
       </div>
-      <p className="text-sm ml-2 -mt-1">{text}</p>
+      {text && (
+        <p className="text-sm ml-2 -mt-1 text-muted-foreground">{text}</p>
+      )}
     </div>
   );
 }

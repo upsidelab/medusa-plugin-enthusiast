@@ -154,7 +154,6 @@ export default class EnthusiastService extends MedusaService({EnthusiastDataset}
       acc[item.external_id] = item;
       return acc;
     }, {} as Record<string, { id: string; external_id: number }>);
-    // todo change names
     const upsert = enthusiastDatasets.reduce((acc, enthusiastDataset) => {
       const found = internalDatasetsMap[enthusiastDataset.id];
       if (found) {

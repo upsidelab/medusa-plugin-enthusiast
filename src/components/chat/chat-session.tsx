@@ -78,28 +78,22 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
 
   useEffect(() => {
     const loadMessages = async () => {
+      const initChat = pendingMessage && !initialized.current;
+      if (initChat) {
+        initialized.current = true;
+        await onMessageComposerSubmit(pendingMessage);
+      }
+
       const conversation = await adminApiClient.conversations().getConversation(conversationId);
       setConversation(conversation);
       setAgentId(conversation.agent?.id);
 
+      if (pendingMessage) {
+        return;
+      }
+
       const initialMessages = conversation.history as MessageProps[];
       setMessages(initialMessages);
-
-      // Only send pendingMessage if it's new and not already in history
-      if (pendingMessage && !initialized.current) {
-        // Check if this message already exists in the conversation history
-        const messageExists = initialMessages.some(
-          msg => msg.type === "human" && msg.text === pendingMessage.text
-        );
-        
-        if (!messageExists) {
-          initialized.current = true;
-          await onMessageComposerSubmit(pendingMessage);
-        } else {
-          // Message already exists, just mark as initialized
-          initialized.current = true;
-        }
-      }
 
       scrollToLastMessage(100);
     };
@@ -157,7 +151,9 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
         const chunkStr = String(chunk);
         
         setIsLoading(false);
-        setIsAgentLoading(false);
+        if (chunkStr.trim().length > 0) {
+          setIsAgentLoading(false);
+        }
 
         setMessages((prevMessages) => {
           const lastMessage = prevMessages[prevMessages.length - 1];
@@ -183,6 +179,7 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
       },
       action: () => {
         setAgentAction(payload.output);
+        setIsAgentLoading(true);
       },
       error: () => {
         setIsLoading(false);
@@ -253,7 +250,6 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
       return;
     }
 
-    // Only process if this is the current task
     if (currentTaskHandleRef.current?.task_id !== taskHandle.task_id) {
       return;
     }
@@ -262,7 +258,6 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
       const response = await adminApiClient.conversations().fetchResponseMessage(conversationId!, taskHandle);
 
       if (response) {
-        // Check if we've already added this message
         if (response.id && response.id === lastAddedMessageIdRef.current) {
           setIsAgentLoading(false);
           setIsLoading(false);
@@ -271,7 +266,6 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
 
         setIsAgentLoading(false);
         setMessages((prev) => {
-          // Check if this message already exists (by ID)
           const messageExists = prev.some(
             msg => msg.type === "ai" && msg.id === response.id
           );
@@ -322,8 +316,26 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
   const onMessageComposerSubmit = async (message: Message) => {
     setIsLoading(true);
     setIsAgentLoading(true);
-    addFileMessages(message.files);
-    addUserMessage(message.text);
+    setMessages((prev) => {
+      const messageExists = prev.some(
+        msg => msg.type === "human" && msg.text === message.text && msg.id === null
+      );
+      
+      if (!messageExists) {
+        const fileMessages = message.files.map<FileMessageProps>(file => ({
+          id: null,
+          type: "file",
+          file_name: file.name,
+          file_type: file.type
+        }));
+        return [
+          ...prev,
+          ...fileMessages,
+          { type: "human", text: message.text, id: null } as MessageProps
+        ];
+      }
+      return prev;
+    });
 
     const taskHandle = await adminApiClient.conversations().sendMessage(conversationId, dataSetId!, message.text, streamingEnabled.current, message.files.map(f => f.id));
     currentTaskHandleRef.current = taskHandle;
@@ -354,7 +366,7 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
           <PageHeading
               title={pendingMessage?.text || conversation.summary!}
               description={`Chat with ${conversation.agent.name}`}
-              className="sticky top-0 pt-4 bg-background z-10 px-8"
+              className="flex-shrink-0 pt-4 bg-background z-[1] px-8"
           >
             <Button className="ml-auto mr-0" variant="outline" onClick={() => navigate(`/enthusiast/dataset/${dataSetId}/chat?agent=${encodeURIComponent(conversation.agent.id)}`)}>
               <PlusIcon />
@@ -362,7 +374,7 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
             </Button>
           </PageHeading>
           <ChatWindow
-            className="pt-16"
+            className="flex-1 min-h-0 pt-4"
             onSubmit={onMessageComposerSubmit}
             isLoading={isLoading}
             conversationLocked={isAgentDeleted || isAgentCorrupted}

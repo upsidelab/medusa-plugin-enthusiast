@@ -101,7 +101,7 @@ export function NewChat({ onPendingMessage }: NewChatProps) {
       <PageHeading
         title={emptyState && emptyState.title || selectedAgent!.name}
         description={emptyState && emptyState.description || 'Start a new conversation.'}
-        className="sticky top-0 bg-background z-[1] px-8"
+        className="flex-shrink-0 pt-4 bg-background z-[1] px-8"
       />
       {
         emptyState ? (
@@ -116,7 +116,7 @@ export function NewChat({ onPendingMessage }: NewChatProps) {
             </div>
           </div>
         ) : (
-          <ChatWindow className="pt-4" onSubmit={onSubmit} isLoading={false} agentId={agentId ?? undefined} fileUploadEnabled={agentDetails?.file_upload}>
+          <ChatWindow className="flex-1 min-h-0 pt-4" onSubmit={onSubmit} isLoading={false} agentId={agentId ?? undefined} fileUploadEnabled={agentDetails?.file_upload}>
             <div className="grow flex items-start justify-center pt-16">
               {agentDetails?.description && (
                 <div className="text-center space-y-4 max-w-2xl px-6">

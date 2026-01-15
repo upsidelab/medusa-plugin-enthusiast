@@ -10,7 +10,7 @@ export interface PageMainProps {
 
 export function PageMain({ children, className }: PageMainProps) {
   return (
-    <Container className={cn("flex flex-col divide-y p-0 h-full pt-3", className)}>
+    <Container className={cn("flex flex-col divide-y p-0 h-screen overflow-hidden", className)}>
       {children}
     </Container>
   )
