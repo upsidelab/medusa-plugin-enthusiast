@@ -1,5 +1,4 @@
 import {
-    Button,
     Container,
     createDataTableColumnHelper,
     DataTable,
@@ -15,7 +14,7 @@ import {EnthusiastDatasetType} from "../../admin/lib/types";
 import {RefreshCw} from "lucide-react";
 import {ActionMenu} from "../../components/admin/action-menu";
 import {ColumnHeaderWithTooltip} from "../../components/admin/column-with-tooltip";
-import {ArrowPath, CogSixTooth, Spinner, SquareGreenSolid, SquareRedSolid} from "@medusajs/icons";
+import {ArrowPath} from "@medusajs/icons";
 import {DatasetCreateForm} from "../../components/admin/dataset-create-form";
 import {LoadingSpinner} from "../../components/utils/spinner";
 
@@ -24,8 +23,6 @@ export const DatasetTable = () => {
     const [datasets, setDatasets] = useState<EnthusiastDatasetType[]>([])
     const [refetch, setRefetch] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState(true)
-    //todo use errors
-    const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
         const fetchDataset = async () => {
@@ -33,8 +30,6 @@ export const DatasetTable = () => {
                 setIsLoading(true)
                 const res = await adminApiClient.dataSets().getInternalDataSets()
                 setDatasets(res)
-              } catch (e) {
-                setError("Failed to load datasets")
               } finally {
                 setIsLoading(false)
                 setRefetch(false)
