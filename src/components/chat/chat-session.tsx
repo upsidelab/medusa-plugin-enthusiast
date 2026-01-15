@@ -340,6 +340,12 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
     const taskHandle = await adminApiClient.conversations().sendMessage(conversationId, dataSetId!, message.text, streamingEnabled.current, message.files.map(f => f.id));
     currentTaskHandleRef.current = taskHandle;
     usePolling.current = !taskHandle.streaming;
+    
+    // Clear pendingMessage from location state after successful submission
+    if (pendingMessage && message.text === pendingMessage.text) {
+      navigate(`/enthusiast/dataset/${dataSetId}/chat/${conversationId}`, { replace: true, state: {} });
+    }
+    
     if (taskHandle.streaming) {
       const connected = await createSseConnection(conversationId);
       if (!connected) {

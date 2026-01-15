@@ -1,8 +1,9 @@
 import {
+    Button,
     Container,
     createDataTableColumnHelper,
     DataTable,
-    Heading,
+    Heading, IconButton,
     Label,
     RadioGroup,
     Text,
@@ -14,7 +15,7 @@ import {EnthusiastDatasetType} from "../../admin/lib/types";
 import {RefreshCw} from "lucide-react";
 import {ActionMenu} from "../../components/admin/action-menu";
 import {ColumnHeaderWithTooltip} from "../../components/admin/column-with-tooltip";
-import {Spinner, SquareGreenSolid, SquareRedSolid} from "@medusajs/icons";
+import {ArrowPath, CogSixTooth, Spinner, SquareGreenSolid, SquareRedSolid} from "@medusajs/icons";
 import {DatasetCreateForm} from "../../components/admin/dataset-create-form";
 import {LoadingSpinner} from "../../components/utils/spinner";
 
@@ -80,6 +81,36 @@ export const DatasetTable = () => {
       }),
       columnHelper.accessor("sync_status", {
         header: "Synchronization Status",
+        cell: ({ getValue, row }) => {
+            return (
+        <RadioGroup
+          onValueChange={async () => {
+              setIsLoading(true)
+              await adminApiClient.dataSets().setAsActive(row.original.id)
+              setRefetch(true)
+              setIsLoading(false)
+          }}
+        >
+        <div className="flex items-center gap-x-3">
+            <Label htmlFor={`${row.original.id}`} weight="plus">{row.original.sync_status}</Label>
+            {
+                row.original.sync_status &&
+                <IconButton variant="transparent" onClick={
+                async () => {
+                          await adminApiClient.dataSets().synchronizeDatasets(row.original.id)
+                          setRefetch(true)
+                      }
+                }>
+                    <ArrowPath />
+                </IconButton>
+            }
+
+
+        </div>
+
+        </RadioGroup>
+      )
+        }
       }),
       columnHelper.accessor("last_synced", {
         header: "Last synchronized",
