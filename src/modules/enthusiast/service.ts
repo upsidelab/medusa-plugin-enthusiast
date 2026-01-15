@@ -22,6 +22,7 @@ import { Context } from "@medusajs/framework/types"
 import { EntityManager } from "@medusajs/framework/mikro-orm/knex"
 import {CreateDataSetPayload, DataSet} from "../../modules/enthusiast/api/types/dataset";
 import {WebsocketHandler} from "../../modules/enthusiast/websocket";
+import {AuthenticatedMedusaRequest} from "@medusajs/framework/http";
 
 type InjectedDependencies = {
   logger: Logger
@@ -118,15 +119,31 @@ export default class EnthusiastService extends MedusaService({EnthusiastDataset}
     return await this.apiClient().conversations().getFileUploadStatus(taskId)
   }
 
-  listInternalDatasets = async (container: MedusaContainer): Promise<EnthusiastDatasetType[]> => {
+  listInternalDatasets = async (req: AuthenticatedMedusaRequest): Promise<EnthusiastDatasetType[]> => {
+    const container = req.scope
+    const apiKeyModuleService = container.resolve(Modules.API_KEY)
+    const userModuleService = container.resolve(Modules.USER)
     const enthusiastDatasets = await this.apiClient().dataSets().getDataSets()
     const enthusiastDatasetsIds = enthusiastDatasets.map(d => d.id)
     const internalDatasets = await this.listEnthusiastDatasets()
-    const apiKeyModuleService = container.resolve(Modules.API_KEY)
+
+
+    const user = await userModuleService.retrieveUser(
+      req.auth_context.actor_id
+    )
+
     const notRelevantDatasets = await this.listEnthusiastDatasets({
       external_id: {$nin: enthusiastDatasetsIds}
     })
     const notRelevantApiKeyIds = notRelevantDatasets.map(dataset => dataset.api_key_id).filter((id): id is string => id != null)
+    await apiKeyModuleService.revoke(
+      {
+        id: notRelevantApiKeyIds,
+      },
+      {
+        revoked_by: user.email,
+      }
+    )
     await apiKeyModuleService.deleteApiKeys(notRelevantApiKeyIds)
     await this.deleteEnthusiastDatasets({
       external_id: {
