@@ -1,7 +1,7 @@
 import {InjectManager, InjectTransactionManager, MedusaContext, MedusaService, Modules} from "@medusajs/framework/utils"
-import { Logger } from "@medusajs/framework/types"
+import {Context, Logger} from "@medusajs/framework/types"
 import {PluginOptions} from "../../settings";
-import {ApiClient, EnthusiastAPIError} from "./api/client";
+import {ApiClient} from "./api/client";
 import {
   Conversation,
   FeedbackData,
@@ -14,19 +14,19 @@ import {
 import {AgentDetails} from "./api/types/agent";
 import EnthusiastDataset from "./models/enthusiast-dataset";
 import {EnthusiastDatasetType} from "../../admin/lib/types";
-import {ConfigModule} from "@medusajs/framework";
+import {ConfigModule, container} from "@medusajs/framework";
 import {SyncStatus} from "./types";
 import syncDatasetStatusWorkflow from "../../workflows/check-sync-status";
 import {MedusaContainer} from "@medusajs/medusa";
-import { Context } from "@medusajs/framework/types"
-import { EntityManager } from "@medusajs/framework/mikro-orm/knex"
-import {CreateDataSetPayload, DataSet} from "../../modules/enthusiast/api/types/dataset";
+import {EntityManager} from "@medusajs/framework/mikro-orm/knex"
+import {CreateDataSetPayload} from "../../modules/enthusiast/api/types/dataset";
 import {WebsocketHandler} from "../../modules/enthusiast/websocket";
 import {AuthenticatedMedusaRequest} from "@medusajs/framework/http";
 
 type InjectedDependencies = {
   logger: Logger
   configModule: ConfigModule
+  options: PluginOptions
 }
 
 export class EnthusiastServiceError extends Error {
@@ -39,16 +39,16 @@ export class EnthusiastServiceError extends Error {
 
 
 export default class EnthusiastService extends MedusaService({EnthusiastDataset}){
-  protected options_: PluginOptions
   protected logger_: Logger
   protected configModule_: ConfigModule
+  protected options_: PluginOptions
 
-  constructor({ logger, configModule }: InjectedDependencies, options: PluginOptions) {
+  constructor({ logger, configModule, options }: InjectedDependencies) {
     super(...arguments)
 
-    this.options_ = options
     this.logger_ = logger
     this.configModule_ = configModule
+    this.options_ = options
   }
   apiClient = () => {
     return new ApiClient(this.options_.enthusiastApiUrl, this.options_.enthusiastServiceAccountToken)
@@ -183,7 +183,7 @@ export default class EnthusiastService extends MedusaService({EnthusiastDataset}
     container: MedusaContainer,
     @MedusaContext() sharedContext?: Context<EntityManager>
   ): Promise<void> {
-      const apiKeyModuleService = container.resolve(Modules.API_KEY)
+    const apiKeyModuleService = container.resolve(Modules.API_KEY)
     const datasets = await this.listEnthusiastDatasets({id: datasetId, is_connected: false})
     if (!datasets || !datasets.length) {
       return
@@ -194,8 +194,8 @@ export default class EnthusiastService extends MedusaService({EnthusiastDataset}
       type: "secret",
       created_by: "enthusiast-plugin",
     })
-    //todo add proper URL
-    const plugin = await this.apiClient().dataSets().addDataSetProductSource(dataset.external_id, this.options_.enthusiastMedusaSourcePluginName, {api_key:apiKey.token ,base_url:"http://host.docker.internal:9000"})
+
+    const plugin = await this.apiClient().dataSets().addDataSetProductSource(dataset.external_id, this.options_.enthusiastMedusaSourcePluginName, {api_key:apiKey.token ,base_url: this.options_.medusaBackendUrl})
     await this.updateEnthusiastDatasets({id:dataset.id, is_connected:true, plugin_id:plugin.id, task_id: plugin.task_id, sync_status: SyncStatus.PROCESSING, api_key_id: apiKey.id})
     await syncDatasetStatusWorkflow(container).run({input: {datasetId: dataset.id}})
   }

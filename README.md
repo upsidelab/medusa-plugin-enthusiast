@@ -25,6 +25,7 @@ ENTHUSIAST_MEDUSA_PRODUCT_SOURCE_NAME=MedusaSource
 - `ENTHUSIAST_WS_URL`: Your Enthusiast instance base WS url.
 - `ENTHUSIAST_SERVICE_ACCOUNT_TOKEN`: Your Enthusiast admin service account's token.
 - `ENTHUSIAST_MEDUSA_PRODUCT_SOURCE_NAME`: Your Enthusiast instance Medusa plugin name.
+- `ENTHUSIAST_MEDUSA_BACKEND_URL(Optional)`: Your medusa backend url, where Enthusiast can send request to(default is set to `http://host.docker.internal:9000` for local docker development)
 ### Enable plugin in Medusa
 Add below entry to your plugins array:
 #### medusa-config.ts
@@ -36,6 +37,7 @@ Add below entry to your plugins array:
     enthusiastWSUrl: process.env.ENTHUSIAST_WS_URL,
     enthusiastServiceAccountToken: process.env.ENTHUSIAST_SERVICE_ACCOUNT_TOKEN,
     enthusiastMedusaSourcePluginName: process.env.ENTHUSIAST_MEDUSA_PRODUCT_SOURCE_NAME,
+    medusaBackendUrl: process.env.ENTHUSIAST_MEDUSA_BACKEND_URL,
   }
 }
 ```
