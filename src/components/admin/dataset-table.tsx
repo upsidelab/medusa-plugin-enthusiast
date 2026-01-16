@@ -163,7 +163,7 @@ export const DatasetTable = () => {
                         This table lists all enthusiast datasets available in your store.
                       </Text>
                     </div>
-                    <DatasetCreateForm setRefetch={setRefetch} anyActive={datasets.some((dataset) => dataset.is_active)} />
+                    <DatasetCreateForm setRefetch={setRefetch} anyActive={datasets.some((dataset) => dataset.is_active)} isFirst={!datasets.length} />
                   </DataTable.Toolbar>
                   <DataTable.Table
                       emptyState={{

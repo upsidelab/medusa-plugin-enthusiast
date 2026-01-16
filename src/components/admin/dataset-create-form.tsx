@@ -4,7 +4,9 @@ import {
     Label,
     Input,
     Button,
-    Select, toast, Kbd, IconButton,
+    Select,
+    toast,
+    IconButton,
 } from "@medusajs/ui"
 import {
   useForm,
@@ -16,28 +18,33 @@ import {PostCreateDatasetSchema} from "../../api/admin/datasets/validators";
 import {useEffect, useState} from "react";
 import {adminApiClient} from "../../admin/lib/admin-client";
 import {ProvidersConfig} from "../../modules/enthusiast/api/types/config";
-import {XMarkMini} from "@medusajs/icons";
+import {ChevronRightMini, XMarkMini} from "@medusajs/icons";
+import {Collapsible, CollapsibleContent, CollapsibleTrigger} from "../../components/ui/collapsible";
+import {cn} from "../../admin/lib/utils";
 
 type DatasetCreateFormProps = {
     setRefetch?: React.Dispatch<React.SetStateAction<boolean>>;
     anyActive: boolean;
+    isFirst: boolean;
 }
 
-export const DatasetCreateForm = ({ setRefetch, anyActive }: DatasetCreateFormProps) => {
+export const DatasetCreateForm = ({ setRefetch, anyActive, isFirst }: DatasetCreateFormProps) => {
   const [providersConfig, setProvidersConfig] = useState<ProvidersConfig | undefined>(undefined);
   const [languageModelNames, setLanguageModelNames] = useState<string[] | undefined>(undefined);
   const [embeddingModels, setEmbeddingModels] = useState<string[] | undefined>(undefined);
   const [formOpen, setFormOpen] = useState(false)
-  const form = useForm<zod.infer<typeof PostCreateDatasetSchema>>({
-    defaultValues: {
-      name: "",
+  const [advancedOpen, setAdvancedOpen] = useState<boolean>(false);
+
+  let defaultValues = {
+      name: isFirst ? "Default" : "",
       language_model_provider: "",
       language_model: "",
       embedding_provider: "",
       embedding_model: "",
       embedding_vector_dimensions: 512,
-    },
-  })
+  }
+
+  const form = useForm<zod.infer<typeof PostCreateDatasetSchema>>({defaultValues})
   useEffect(() => {
     const loadProvidersConfig = async () => {
       const result = await adminApiClient.config().getAvailableProviders();
@@ -140,37 +147,39 @@ export const DatasetCreateForm = ({ setRefetch, anyActive }: DatasetCreateFormPr
                   <div className="mx-auto flex w-full max-w-[720px] flex-col gap-y-8 px-2 py-16">
                     <div>
                       <Heading className="capitalize">
-                        Create Item
+                        Create Dataset
                       </Heading>
                     </div>
                     <div className="flex flex-col gap-4">
-                      <Controller
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => {
-                          return (
-                            <div className="flex flex-col space-y-2">
-                              <div className="flex items-center gap-x-1">
-                                <Label size="small" weight="plus">
-                                  Name
-                                </Label>
-                              </div>
-                              <Input {...field} />
-                            </div>
-                          )
-                        }}
-                      />
+                        {
+                            !isFirst &&
+                            <Controller
+                                control={form.control}
+                                name="name"
+                                render={({field}) => {
+                                    return (
+                                        <div className="flex flex-col space-y-2">
+                                            <div className="flex items-center gap-x-1">
+                                                <Label size="small" weight="plus">
+                                                    Name
+                                                </Label>
+                                            </div>
+                                            <Input {...field} />
+                                        </div>
+                                    )
+                                }}
+                            />
+                        }
+                    <Label size="small" weight="plus">
+                      Language Model
+                    </Label>
+                    <div className="grid grid-cols-2 gap-4">
                       <Controller
                         control={form.control}
                         name="language_model_provider"
                         render={({ field }) => {
                           return (
                             <div className="flex flex-col space-y-2">
-                              <div className="flex items-center gap-x-1">
-                                <Label size="small" weight="plus">
-                                  Language Model Provider
-                                </Label>
-                              </div>
                               <Select
                                 value={field.value ?? undefined}
                                 onValueChange={(v) => {
@@ -206,11 +215,6 @@ export const DatasetCreateForm = ({ setRefetch, anyActive }: DatasetCreateFormPr
                         render={({ field }) => {
                           return (
                             <div className="flex flex-col space-y-2">
-                              <div className="flex items-center gap-x-1">
-                                <Label size="small" weight="plus">
-                                  Language Model
-                                </Label>
-                              </div>
                               <Select
                                 value={field.value ?? undefined}
                                 onValueChange={field.onChange}
@@ -237,105 +241,121 @@ export const DatasetCreateForm = ({ setRefetch, anyActive }: DatasetCreateFormPr
                           )
                         }}
                       />
-                      <Controller
-                        control={form.control}
-                        name="embedding_provider"
-                        render={({ field }) => {
-                          return (
-                            <div className="flex flex-col space-y-2">
-                              <div className="flex items-center gap-x-1">
+                    </div>
+                    <Collapsible className="py-4" open={advancedOpen} onOpenChange={setAdvancedOpen}>
+                        <CollapsibleTrigger asChild>
+                            <Button variant="transparent" className="pl-0">
                                 <Label size="small" weight="plus">
-                                  Embedding Provider
+                                  Advance settings
                                 </Label>
-                              </div>
-                              <Select
-                                value={field.value ?? undefined}
-                                onValueChange={(v) => {
-                                  field.onChange(v)
-                                  form.resetField("embedding_model")
+                                {/*{advancedOpen ? <ChevronDownMini/> : <ChevronRightMini/>}*/}
+                                <ChevronRightMini
+                                    className={cn(
+                                      "transition-transform duration-200 ease-in-out",
+                                      advancedOpen && "rotate-90"
+                                    )}
+                                />
+                            </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                            <div className="flex flex-col gap-4">
+                            <Label size="small" weight="plus">
+                              Embedding Provider
+                            </Label>
+                            <div className="grid grid-cols-2 gap-4">
+                              <Controller
+                                control={form.control}
+                                name="embedding_provider"
+                                render={({ field }) => {
+                                  return (
+                                    <div className="flex flex-col space-y-2">
+                                      <Select
+                                        value={field.value ?? undefined}
+                                        onValueChange={(v) => {
+                                          field.onChange(v)
+                                          form.resetField("embedding_model")
+                                        }}
+                                      >
+                                        <Select.Trigger>
+                                          <Select.Value placeholder="Select a provider" />
+                                        </Select.Trigger>
+                                        <Select.Content>
+                                          {providersConfig?.embeddingProviders?.length ? (
+                                            providersConfig.embeddingProviders.map((name) => (
+                                              <Select.Item key={name} value={name}>
+                                                {name}
+                                              </Select.Item>
+                                            ))
+                                          ) : (
+                                            <Select.Item disabled value="__empty_embed_provider__">
+                                              {providersConfig ? "No providers found" : "Loading..."}
+                                            </Select.Item>
+                                          )}
+                                        </Select.Content>
+                                      </Select>
+                                    </div>
+                                  )
                                 }}
-                              >
-                                <Select.Trigger>
-                                  <Select.Value placeholder="Select a provider" />
-                                </Select.Trigger>
-                                <Select.Content>
-                                  {providersConfig?.embeddingProviders?.length ? (
-                                    providersConfig.embeddingProviders.map((name) => (
-                                      <Select.Item key={name} value={name}>
-                                        {name}
-                                      </Select.Item>
-                                    ))
-                                  ) : (
-                                    <Select.Item disabled value="__empty_embed_provider__">
-                                      {providersConfig ? "No providers found" : "Loading..."}
-                                    </Select.Item>
-                                  )}
-                                </Select.Content>
-                              </Select>
-                            </div>
-                          )
-                        }}
-                      />
-                      <Controller
-                        control={form.control}
-                        name="embedding_model"
-                        render={({ field }) => {
-                          return (
-                            <div className="flex flex-col space-y-2">
-                              <div className="flex items-center gap-x-1">
-                                <Label size="small" weight="plus">
-                                  Embedding Model
-                                </Label>
-                              </div>
-                              <Select
-                                value={field.value ?? undefined}
-                                onValueChange={field.onChange}
-                                disabled={!embeddingProvider}
-                              >
-                                <Select.Trigger>
-                                  <Select.Value placeholder={embeddingProvider ? "Select a model" : "Select provider first"} />
-                                </Select.Trigger>
-                                <Select.Content>
-                                  {embeddingModels?.length ? (
-                                    embeddingModels.map((name) => (
-                                      <Select.Item key={name} value={name}>
-                                        {name}
-                                      </Select.Item>
-                                    ))
-                                  ) : (
-                                    <Select.Item disabled value="__empty_embed_model__">
-                                      {embeddingModels ? "No models found" : "Loading..."}
-                                    </Select.Item>
-                                  )}
-                                </Select.Content>
-                              </Select>
-                            </div>
-                          )
-                        }}
-                      />
-                      <Controller
-                        control={form.control}
-                        name="embedding_vector_dimensions"
-                        render={({ field }) => {
-                          return (
-                            <div className="flex flex-col space-y-2">
-                              <div className="flex items-center gap-x-1">
-                                <Label size="small" weight="plus">
-                                  Embedding Provider Dimensions
-                                </Label>
-                              </div>
-                              <Input
-                                type="number"
-                                value={Number.isFinite(field.value) ? String(field.value) : ""}
-                                onChange={(e) => {
-                                  const v = e.target.value
-                                  field.onChange(v === "" ? 0 : Number(v))
+                              />
+                              <Controller
+                                control={form.control}
+                                name="embedding_model"
+                                render={({ field }) => {
+                                  return (
+                                    <div className="flex flex-col space-y-2">
+                                      <Select
+                                        value={field.value ?? undefined}
+                                        onValueChange={field.onChange}
+                                        disabled={!embeddingProvider}
+                                      >
+                                        <Select.Trigger>
+                                          <Select.Value placeholder={embeddingProvider ? "Select a model" : "Select provider first"} />
+                                        </Select.Trigger>
+                                        <Select.Content>
+                                          {embeddingModels?.length ? (
+                                            embeddingModels.map((name) => (
+                                              <Select.Item key={name} value={name}>
+                                                {name}
+                                              </Select.Item>
+                                            ))
+                                          ) : (
+                                            <Select.Item disabled value="__empty_embed_model__">
+                                              {embeddingModels ? "No models found" : "Loading..."}
+                                            </Select.Item>
+                                          )}
+                                        </Select.Content>
+                                      </Select>
+                                    </div>
+                                  )
                                 }}
                               />
                             </div>
-                          )
-                        }}
-                      />
+                              <Controller
+                                control={form.control}
+                                name="embedding_vector_dimensions"
+                                render={({ field }) => {
+                                  return (
+                                    <div className="flex flex-col space-y-2">
+                                      <div className="flex items-center gap-x-1">
+                                        <Label size="small" weight="plus">
+                                          Embedding Provider Dimensions
+                                        </Label>
+                                      </div>
+                                      <Input
+                                        type="number"
+                                        value={Number.isFinite(field.value) ? String(field.value) : ""}
+                                        onChange={(e) => {
+                                          const v = e.target.value
+                                          field.onChange(v === "" ? 0 : Number(v))
+                                        }}
+                                      />
+                                    </div>
+                                  )
+                                }}
+                              />
+                            </div>
+                        </CollapsibleContent>
+                    </Collapsible>
                     </div>
                   </div>
                 </div>
