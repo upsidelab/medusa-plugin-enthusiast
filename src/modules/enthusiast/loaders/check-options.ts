@@ -22,9 +22,12 @@ export default async function checkOptionsLoader({ options, container }: LoaderO
     if (errors.length > 0) {
       throw new Error(`[enthusiast] Plugin configuration error:\n${errors.join("\n")}`)
     }
+    const cleanedOptions = Object.fromEntries(
+        Object.entries(moduleOptions).filter(([, v]) => v !== undefined)
+    )
     const finalOptions = {
         ...defaults,
-        ...options,
+        ...cleanedOptions,
     }
 
     container.register(

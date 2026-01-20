@@ -5,6 +5,7 @@ import {Message, OnSubmit} from "./message-composer";
 import {PageMain} from "../utils/page-main";
 import {PageHeading} from "../utils/page-heading";
 import {ChatWindow} from "./chat-window";
+import {ChatSidebar} from "./chat-sidebar";
 import {adminApiClient} from "../../admin/lib/admin-client";
 import {LoadingSpinner} from "../../components/utils/spinner";
 import {toast} from "@medusajs/ui";
@@ -97,40 +98,45 @@ export function NewChat({ onPendingMessage }: NewChatProps) {
   }
 
   return (
-    <PageMain>
-      <PageHeading
-        title={emptyState && emptyState.title || selectedAgent!.name}
-        description={emptyState && emptyState.description || 'Start a new conversation.'}
-        className="flex-shrink-0 pt-4 bg-background z-[1] px-8"
-      />
-      {
-        emptyState ? (
-          <div className="flex flex-col flex-1 overflow-y-auto px-4 pt-4">
-            <div className="grow flex items-center justify-center">
-              <div className="text-center space-y-4">
-                <h2 className="text-xl font-semibold text-gray-900">{emptyState.title}</h2>
-                <p className="text-gray-600 max-w-md">
-                  {emptyState.description}
-                </p>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <ChatWindow className="flex-1 min-h-0 pt-4" onSubmit={onSubmit} isLoading={false} agentId={agentId ?? undefined} fileUploadEnabled={agentDetails?.file_upload}>
-            <div className="grow flex items-start justify-center pt-16">
-              {agentDetails?.description && (
-                <div className="text-center space-y-4 max-w-2xl px-6">
-                  <div className="bg-background rounded-lg p-6">
-                    <p className="text-gray-500 text-base leading-relaxed">
-                      {agentDetails.description}
+    <div className="flex h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden px-1 py-2">
+        <PageMain className="h-full">
+          <PageHeading
+            title={emptyState && emptyState.title || selectedAgent!.name}
+            description={emptyState && emptyState.description || 'Start a new conversation.'}
+            className="flex-shrink-0 pt-4 bg-background z-[1] px-8"
+          />
+          {
+            emptyState ? (
+              <div className="flex flex-col flex-1 overflow-y-auto px-4 pt-4">
+                <div className="grow flex items-center justify-center">
+                  <div className="text-center space-y-4">
+                    <h2 className="text-xl font-semibold text-gray-900">{emptyState.title}</h2>
+                    <p className="text-gray-600 max-w-md">
+                      {emptyState.description}
                     </p>
                   </div>
                 </div>
-              )}
-            </div>
-          </ChatWindow>
-        )
-      }
-    </PageMain>
+              </div>
+            ) : (
+              <ChatWindow className="flex-1 min-h-0 pt-4" onSubmit={onSubmit} isLoading={false} agentId={agentId ?? undefined} fileUploadEnabled={agentDetails?.file_upload}>
+                <div className="grow flex items-start justify-center pt-16">
+                  {agentDetails?.description && (
+                    <div className="text-center space-y-4 max-w-2xl px-6">
+                      <div className="bg-background rounded-lg p-6">
+                        <p className="text-gray-500 text-base leading-relaxed">
+                          {agentDetails.description}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </ChatWindow>
+            )
+          }
+        </PageMain>
+      </div>
+      <ChatSidebar currentAgentId={agentId!} />
+    </div>
   );
 }

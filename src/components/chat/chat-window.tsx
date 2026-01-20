@@ -26,10 +26,10 @@ export function ChatWindow({
 }: ChatWindowProps) {
   return (
     <div className={cn("flex flex-col min-h-0", className)}>
-      <div className="flex-1 min-h-0 overflow-y-auto px-4">
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-[18px]">
         {children}
       </div>
-      <div className="flex-shrink-0 w-full px-8 pb-4 bg-background">
+      <div className="flex-shrink-0 w-full px-8 pt-[18px] pb-[18px] bg-background">
         <MessageComposer
           onSubmit={onSubmit}
           isLoading={isLoading}

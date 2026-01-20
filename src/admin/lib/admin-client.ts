@@ -36,10 +36,12 @@ export class AdminEnthusiastConfigApiClient {
 
 
 export class AdminEnthusiastConversationsApiClient {
-  async getConversations(dataSetId: number, page: number = 1): Promise<PaginatedResult<Conversation>> {
-    const response = await enthusiastAdminSdk.client.fetch(
-      `/enthusiast/conversations?data_set_id=${dataSetId}&page=${page}`
-    );
+  async getConversations(dataSetId: number, agentId: number | undefined = undefined, page: number = 1): Promise<PaginatedResult<Conversation>> {
+    let url = `/enthusiast/conversations?data_set_id=${dataSetId}&page=${page}`;
+    if (agentId !== undefined) {
+      url += `&agent_id=${agentId}`;
+    }
+    const response = await enthusiastAdminSdk.client.fetch(url);
     return response as PaginatedResult<Conversation>;
   }
 

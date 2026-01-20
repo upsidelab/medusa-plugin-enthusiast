@@ -1,0 +1,88 @@
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { Text } from "@medusajs/ui";
+import { adminApiClient } from "../../admin/lib/admin-client";
+import { Agent } from "../../modules/enthusiast/api/types/agent";
+import { Conversation } from "../../modules/enthusiast/api/types/conversation";
+import { AgentList } from "./agent-list";
+import { ConversationHistory } from "./conversation-history";
+
+interface ChatSidebarProps {
+  currentAgentId: number;
+  currentConversationId?: number;
+}
+
+export function ChatSidebar({ currentAgentId, currentConversationId }: ChatSidebarProps) {
+  const { dataSetId: dataset } = useParams();
+  const dataSetId = dataset ? parseInt(dataset, 10) : null;
+  const navigate = useNavigate();
+  
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (!dataSetId) return;
+      
+      try {
+        setIsLoading(true);
+
+        const agentsRes = await adminApiClient.agents().getDatasetAgents(dataSetId);
+        const availableAgents = agentsRes.filter(agent => !agent.corrupted);
+        setAgents(availableAgents);
+
+        const conversationsRes = await adminApiClient.conversations().getConversations(dataSetId, currentAgentId, 1);
+        const conversationArray = conversationsRes.results || [];
+        setConversations(conversationArray);
+        
+      } catch (error) {
+        console.error("Failed to load sidebar data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, [dataSetId, currentAgentId, currentConversationId]);
+
+  const handleAgentClick = (agentId: number) => {
+    navigate(`/enthusiast/dataset/${dataSetId}/chat?agent=${encodeURIComponent(agentId)}`);
+  };
+
+  const handleConversationClick = (conversationId: number) => {
+    navigate(`/enthusiast/dataset/${dataSetId}/chat/${conversationId}`);
+  };
+
+  const handleNewChat = () => {
+    navigate(`/enthusiast/dataset/${dataSetId}/chat?agent=${encodeURIComponent(currentAgentId)}`);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="w-64 bg-background p-4">
+        <Text className="text-muted-foreground">Loading...</Text>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-64 bg-background flex flex-col h-full overflow-hidden">
+      <div className="px-2 pt-2 h-[40%] min-h-0 pb-4">
+        <AgentList
+          agents={agents}
+          currentAgentId={currentAgentId}
+          onAgentClick={handleAgentClick}
+        />
+      </div>
+      <div className="px-2 pb-2 h-[60%] min-h-0">
+        <ConversationHistory
+          conversations={conversations.slice(0,10)}
+          currentConversationId={currentConversationId}
+          onConversationClick={handleConversationClick}
+          onNewChat={handleNewChat}
+        />
+      </div>
+    </div>
+  );
+}
