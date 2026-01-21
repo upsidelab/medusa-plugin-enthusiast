@@ -290,6 +290,17 @@ export class DataSetsApiClient extends BaseApiClient {
     );
     return await response.json() as CatalogSource
   }
+  async addDataSetIntegration(dataSetId: number, pluginName: string, config: object): Promise<CatalogSource> {
+    const response = await this.sendRequest(
+      `${this.apiBase}/api/data_sets/${dataSetId}/ecommerce_integration`,
+      {
+        ...this._requestConfiguration(),
+        method: "POST",
+        body: JSON.stringify({plugin_name: pluginName, config: {configuration_args: config}})
+      }
+    );
+    return await response.json() as CatalogSource
+  }
 
   async syncDataSetProductSource(dataSetId: number, pluginId: number): Promise<SyncResponse> {
     const response = await this.sendRequest(

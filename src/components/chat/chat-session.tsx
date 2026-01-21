@@ -344,6 +344,8 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
       return prev;
     });
 
+    scrollToLastMessage(100);
+
     const taskHandle = await adminApiClient.conversations().sendMessage(conversationId, dataSetId!, message.text, streamingEnabled.current, message.files.map(f => f.id));
     currentTaskHandleRef.current = taskHandle;
     usePolling.current = !taskHandle.streaming;
@@ -426,7 +428,7 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
                       />
                     );
                   })}
-                  {isAgentLoading && <MessageBubbleTyping text={agentAction} />}
+                  {isAgentLoading && !messages.some(msg => msg.type === 'ai' && msg.text === '') && <MessageBubbleTyping text={agentAction} />}
                   <div className="mb-4" />
                   <div ref={lastMessageRef} />
                 </div>
