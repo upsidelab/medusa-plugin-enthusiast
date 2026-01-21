@@ -109,35 +109,7 @@ export const DatasetTable = () => {
       }),
       columnHelper.accessor("last_synced", {
         header: "Last synchronized",
-      }),
-      columnHelper.display({
-        id: "actions",
-        header: "Actions",
-        cell: ({ row }) => {
-          const dataset = row.original
-
-          return (
-            <ActionMenu
-              groups={[
-                {
-                  actions: [
-                    {
-                      icon: <RefreshCw />,
-                      label: "Synchronize",
-                      disabled: !dataset.is_connected,
-                      onClick: async () => {
-                          await adminApiClient.dataSets().synchronizeDatasets(dataset.id)
-                          setRefetch(true)
-                      }
-                    },
-                  ],
-                },
-              ]}
-            />
-          )
-        },
-      }),
-
+      })
     ]
       const table = useDataTable({
         columns,
