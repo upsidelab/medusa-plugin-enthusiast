@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Text } from "@medusajs/ui";
 import { adminApiClient } from "../../admin/lib/admin-client";
 import { Agent } from "../../modules/enthusiast/api/types/agent";
 import { Conversation } from "../../modules/enthusiast/api/types/conversation";
 import { AgentList } from "./agent-list";
 import { ConversationHistory } from "./conversation-history";
+import {LoadingSpinner} from "../../components/utils/spinner";
 
 interface ChatSidebarProps {
   currentAgentId: number;
@@ -59,11 +59,7 @@ export function ChatSidebar({ currentAgentId, currentConversationId }: ChatSideb
   };
 
   if (isLoading) {
-    return (
-      <div className="w-64 bg-background p-4">
-        <Text className="text-muted-foreground">Loading...</Text>
-      </div>
-    );
+    return (<LoadingSpinner />)
   }
 
   return (

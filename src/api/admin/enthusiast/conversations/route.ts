@@ -8,8 +8,9 @@ export const GET = withErrorHandler(async (
   res: MedusaResponse
 ) => {
   const enthusiastService: EnthusiastService = req.scope.resolve(ENTHUSIAST_MODULE)
-  const dataSetId = req.query.data_set_id as string;
-  const page = req.query.page as string || "1";
+  const dataSetId = parseInt(String(req.query.data_set_id));
+  const agentId = parseInt(String(req.query.agent_id));
+  const page = parseInt(String(req.query.page)) || 1;
   
   if (!dataSetId) {
     res.status(400).json({ error: "data_set_id parameter is required" });
@@ -17,8 +18,9 @@ export const GET = withErrorHandler(async (
   }
   
   const result = await enthusiastService.getConversations(
-    parseInt(dataSetId),
-    parseInt(page)
+    dataSetId,
+    agentId,
+    page
   );
   
   res.status(200).json(result);

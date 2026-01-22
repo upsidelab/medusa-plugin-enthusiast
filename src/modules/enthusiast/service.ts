@@ -56,10 +56,10 @@ export default class EnthusiastService extends MedusaService({EnthusiastDataset}
 
   isConnected = async () => {
     await this.apiClient().accounts().me();
-    const availablePlugins = await this.apiClient().config().getAvailableProductSources()
-    const pluginExists = availablePlugins.choices.some(plugin => plugin.name === this.options_.enthusiastMedusaSourcePluginName)
-    if (!pluginExists) {
-      throw new EnthusiastServiceError(`Plugin ${this.options_.enthusiastMedusaSourcePluginName} does not exist.`)
+    const availablePlugins = await this.apiClient().config().getAvailableIntegrations()
+    const integrationExists = availablePlugins.choices.some(plugin => plugin.name === this.options_.enthusiastMedusaIntegrationName)
+    if (!integrationExists) {
+      throw new EnthusiastServiceError(`Integration ${this.options_.enthusiastMedusaIntegrationName} does not exist.`)
     }
   }
   listAgents = async (dataSetId: number) => {
@@ -74,8 +74,8 @@ export default class EnthusiastService extends MedusaService({EnthusiastDataset}
     return await this.apiClient().agents().getAgentById(agentId)
   }
 
-  getConversations = async (dataSetId: number, page: number = 1): Promise<PaginatedResult<Conversation>> => {
-    return await this.apiClient().conversations().getConversations(dataSetId, page)
+  getConversations = async (dataSetId: number, agentId: number | undefined = undefined, page: number = 1): Promise<PaginatedResult<Conversation>> => {
+    return await this.apiClient().conversations().getConversations(dataSetId, agentId, page)
   }
 
   conversationCreate = async (agentId: number): Promise<number> => {
@@ -216,7 +216,7 @@ export default class EnthusiastService extends MedusaService({EnthusiastDataset}
       return
     }
     const dataset = datasets[0]
-    const { task_id } = await this.apiClient().dataSets().syncDataSetProductSource(dataset.external_id, dataset.plugin_id!)
+    const { task_id } = await this.apiClient().dataSets().syncDataSetIntegration(dataset.external_id)
 
     await this.updateEnthusiastDatasets({id:dataset.id, task_id: task_id, sync_status: SyncStatus.PROCESSING})
     await syncDatasetStatusWorkflow(container).run({input: {datasetId: dataset.id}})

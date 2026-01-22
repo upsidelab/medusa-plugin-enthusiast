@@ -147,7 +147,7 @@ export const DatasetCreateForm = ({ setRefetch, anyActive, isFirst }: DatasetCre
                   <div className="mx-auto flex w-full max-w-[720px] flex-col gap-y-8 px-2 py-16">
                     <div>
                       <Heading className="capitalize">
-                        Create Dataset
+                          Connect to a language model
                       </Heading>
                     </div>
                     <div className="flex flex-col gap-4">
@@ -246,9 +246,8 @@ export const DatasetCreateForm = ({ setRefetch, anyActive, isFirst }: DatasetCre
                         <CollapsibleTrigger asChild>
                             <Button variant="transparent" className="pl-0">
                                 <Label size="small" weight="plus">
-                                  Advance settings
+                                  Advanced settings
                                 </Label>
-                                {/*{advancedOpen ? <ChevronDownMini/> : <ChevronRightMini/>}*/}
                                 <ChevronRightMini
                                     className={cn(
                                       "transition-transform duration-200 ease-in-out",

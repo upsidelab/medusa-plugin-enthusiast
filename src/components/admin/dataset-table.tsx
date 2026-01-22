@@ -47,7 +47,7 @@ export const DatasetTable = () => {
       columnHelper.accessor("is_active", {
         header: () => {
             return (
-                <ColumnHeaderWithTooltip name="Active dataset" tooltip="Active dataset will be used in all chats"/>
+                <ColumnHeaderWithTooltip name="Active" tooltip="Active dataset will be used in all chats."/>
             )
         },
         cell: ({ getValue, row }) => {
@@ -78,14 +78,6 @@ export const DatasetTable = () => {
         header: "Synchronization Status",
         cell: ({ getValue, row }) => {
             return (
-        <RadioGroup
-          onValueChange={async () => {
-              setIsLoading(true)
-              await adminApiClient.dataSets().setAsActive(row.original.id)
-              setRefetch(true)
-              setIsLoading(false)
-          }}
-        >
         <div className="flex items-center gap-x-3">
             <Label htmlFor={`${row.original.id}`} weight="plus">{row.original.sync_status}</Label>
             {
@@ -102,13 +94,18 @@ export const DatasetTable = () => {
 
 
         </div>
-
-        </RadioGroup>
       )
         }
       }),
       columnHelper.accessor("last_synced", {
-        header: "Last synchronized",
+        header: "Last Synchronized",
+          cell: ({ getValue }) => {
+            const date = getValue()
+            if (date) {
+                date.toLocaleString()
+            }
+            return null
+          }
       })
     ]
       const table = useDataTable({
@@ -130,9 +127,9 @@ export const DatasetTable = () => {
                 <DataTable instance={table}>
                   <DataTable.Toolbar className="flex flex-col items-start justify-between gap-2 md:flex-row md:items-center">
                     <div className="flex flex-col">
-                      <Heading>Enthusiast Datasets</Heading>
+                      <Heading>Data Sets</Heading>
                       <Text className="text-ui-fg-subtle" size="small">
-                        This table lists all enthusiast datasets available in your store.
+                        A data set represents a configuration of agents, products and documents sources
                       </Text>
                     </div>
                     <DatasetCreateForm setRefetch={setRefetch} anyActive={datasets.some((dataset) => dataset.is_active)} isFirst={!datasets.length} />

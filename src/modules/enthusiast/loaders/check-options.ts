@@ -9,8 +9,6 @@ export default async function checkOptionsLoader({ options, container }: LoaderO
     const required = {
           enthusiastApiUrl: moduleOptions.enthusiastApiUrl,
           enthusiastServiceAccountToken: moduleOptions.enthusiastServiceAccountToken,
-        //todo remove unused
-          enthusiastMedusaSourcePluginName: moduleOptions.enthusiastMedusaSourcePluginName,
           enthusiastMedusaIntegrationName: moduleOptions.enthusiastMedusaIntegrationName,
     }
     const defaults = {

@@ -5,7 +5,8 @@ import {
     useDataTable,
     Button,
     Container,
-    Text
+    Text,
+    IconButton
 } from "@medusajs/ui"
 import {useNavigate} from "react-router-dom";
 import {useEffect, useState} from "react";
@@ -13,12 +14,12 @@ import {adminApiClient} from "../../admin/lib/admin-client";
 import {AgentDetails} from "../../modules/enthusiast/api/types/agent";
 import {EnthusiastDatasetType} from "@/admin/lib/types";
 import {LoadingSpinner} from "../../components/utils/spinner";
-import {CogSixTooth} from "@medusajs/icons";
+import {ChatBubble, CogSixTooth} from "@medusajs/icons";
 import noDatasetsImage from "../../admin/assets/no-datasets.png";
 
 const columnHelper = createDataTableColumnHelper<AgentDetails>()
 
-const columns = [
+const columns = (navigate: (path: string) => void, dataset: EnthusiastDatasetType | null) => [
   columnHelper.accessor("name", {
     header: "Name",
     enableSorting: true,
@@ -27,7 +28,26 @@ const columns = [
   columnHelper.accessor("description", {
     header: "Description",
   }),
-
+  columnHelper.display({
+    id: "actions",
+    header: "",
+    cell: ({ row }) => {
+      return (
+        <div className="flex justify-end">
+            <Button
+                variant="secondary"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/enthusiast/dataset/${dataset?.external_id}/chat?agent=${row.original.id}`);
+                }}
+            >
+                <ChatBubble />
+                Start Chat
+            </Button>
+        </div>
+      );
+    },
+  }),
 ]
 
 
@@ -85,7 +105,7 @@ export const AgentTable = () => {
     }, []);
 
   const table = useDataTable({
-    columns,
+    columns: columns(navigate, dataset),
     data: agents || [],
     getRowId: (row) => row.id.toString(),
     rowCount: agents.length,
@@ -108,9 +128,9 @@ export const AgentTable = () => {
                             className="h-48 w-auto"
                         />
                     </div>
-                    <h2 className="text-lg font-semibold text-gray-900">No connections yet</h2>
+                    <h2 className="text-lg font-semibold text-gray-900">Enthusiast needs to be configured.</h2>
                     <p className="text-gray-600 text-xs leading-relaxed">
-                        Set up your first connection to start syncing your store data with Enthusiast.
+                        Go to settings to configure your Enthusiast connection.
                     </p>
                     <div className="pt-1">
                         <Button 
@@ -119,7 +139,7 @@ export const AgentTable = () => {
                             onClick={() => navigate("/enthusiast/settings")}
                             className="border border-gray-300"
                         >
-                            Settings
+                            Open Settings
                         </Button>
                     </div>
                 </div>
@@ -137,7 +157,7 @@ export const AgentTable = () => {
               <div>
                 <Heading>Agents</Heading>
                 <Text className="text-ui-fg-subtle" size="small">
-                    {`This table lists all agents available for ${dataset!.name}.`}
+                    Choose an agent to start a session
                 </Text>
               </div>
             <Button variant="secondary" onClick={() => navigate("/enthusiast/settings")}>
@@ -148,8 +168,8 @@ export const AgentTable = () => {
             <DataTable.Table
               emptyState={{
                   empty: {
-                      heading: "No agents",
-                      description: "There is no agents for active dataset."
+                      heading: "No agents available",
+                      description: "You can configure available agents in Enthusiast's admin panel"
                   }
               }}
             />

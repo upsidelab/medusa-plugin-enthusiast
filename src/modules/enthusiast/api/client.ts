@@ -82,8 +82,12 @@ export abstract class BaseApiClient {
 }
 
 export class ConversationsApiClient extends BaseApiClient {
-  async getConversations(dataSetId: number, page: number = 1): Promise<PaginatedResult<Conversation>> {
-    const response = await this.sendRequest(`${this.apiBase}/api/conversations?data_set_id=${dataSetId}&page=${page}`, this._requestConfiguration());
+  async getConversations(dataSetId: number, agentId: number | undefined = undefined, page: number = 1): Promise<PaginatedResult<Conversation>> {
+    let url = `${this.apiBase}/api/conversations?data_set_id=${dataSetId}&page=${page}`
+    if (agentId) {
+      url = url + `&agent_id=${agentId}`
+    }
+    const response = await this.sendRequest(url, this._requestConfiguration());
     return await response.json() as Promise<PaginatedResult<Conversation>>;
   }
 
@@ -302,9 +306,9 @@ export class DataSetsApiClient extends BaseApiClient {
     return await response.json() as CatalogSource
   }
 
-  async syncDataSetProductSource(dataSetId: number, pluginId: number): Promise<SyncResponse> {
+  async syncDataSetIntegration(dataSetId: number): Promise<SyncResponse> {
     const response = await this.sendRequest(
-      `${this.apiBase}/api/data_sets/${dataSetId}/product_sources/${pluginId}/sync`,
+      `${this.apiBase}/api/data_sets/${dataSetId}/ecommerce_integration/sync`,
       {
         ...this._requestConfiguration(),
         method: "POST"
@@ -437,6 +441,10 @@ export class AgentsApiClient extends BaseApiClient {
 
   async getAvailableProductSources(): Promise<PluginsConfig> {
     const response = await this.sendRequest(`${this.apiBase}/api/plugins/product_source_plugins?page_size=100`, this._requestConfiguration());
+    return await response.json() as PluginsConfig;
+  }
+  async getAvailableIntegrations(): Promise<PluginsConfig> {
+    const response = await this.sendRequest(`${this.apiBase}/api/plugins/ecommerce_integration_plugins?page_size=100`, this._requestConfiguration());
     return await response.json() as PluginsConfig;
   }
 }

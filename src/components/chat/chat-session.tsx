@@ -384,10 +384,6 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
                   description={`Chat with ${conversation.agent.name}`}
                   className="flex-shrink-0 pt-4 bg-background z-[1] px-8"
               >
-                <Button className="ml-auto mr-0" variant="outline" onClick={() => navigate(`/enthusiast/dataset/${dataSetId}/chat?agent=${encodeURIComponent(conversation.agent.id)}`)}>
-                  <PlusIcon />
-                  New Chat
-                </Button>
               </PageHeading>
               <ChatWindow
                 className="flex-1 min-h-0"

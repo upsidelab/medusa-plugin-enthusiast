@@ -38,7 +38,7 @@ export class AdminEnthusiastConfigApiClient {
 export class AdminEnthusiastConversationsApiClient {
   async getConversations(dataSetId: number, agentId: number | undefined = undefined, page: number = 1): Promise<PaginatedResult<Conversation>> {
     let url = `/enthusiast/conversations?data_set_id=${dataSetId}&page=${page}`;
-    if (agentId !== undefined) {
+    if (agentId) {
       url += `&agent_id=${agentId}`;
     }
     const response = await enthusiastAdminSdk.client.fetch(url);
