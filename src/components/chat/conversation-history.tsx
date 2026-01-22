@@ -48,7 +48,7 @@ export function ConversationHistory({
               <button
                 key={conv.id}
                 className={cn(
-                  "w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-muted transition-colors",
+                  "w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-ui-bg-base-hover transition-colors",
                   isSelected && "bg-muted"
                 )}
                 onClick={() => onConversationClick(conv.id)}

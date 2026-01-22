@@ -29,7 +29,7 @@ export function AgentList({ agents, currentAgentId, onAgentClick }: AgentListPro
             <button
               key={agent.id}
               className={cn(
-                "w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-muted transition-colors",
+                "w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-ui-bg-base-hover transition-colors",
                 isSelected && "bg-muted"
               )}
               onClick={() => onAgentClick(agent.id)}
