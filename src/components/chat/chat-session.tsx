@@ -380,9 +380,9 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
           {conversation &&
             <>
               <PageHeading
-                  title={pendingMessage?.text || conversation.summary!}
-                  description={`Chat with ${conversation.agent.name}`}
-                  className="flex-shrink-0 pt-4 bg-background z-[1] px-8"
+                  title={agentDetails?.name || ""}
+                  description={agentDetails?.description}
+                  className="flex-shrink-0 bg-background z-[1] px-8"
               >
               </PageHeading>
               <ChatWindow

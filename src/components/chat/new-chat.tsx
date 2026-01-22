@@ -104,7 +104,7 @@ export function NewChat({ onPendingMessage }: NewChatProps) {
           <PageHeading
             title={emptyState && emptyState.title || selectedAgent!.name}
             description={emptyState && emptyState.description || 'Start a new conversation.'}
-            className="flex-shrink-0 pt-4 bg-background z-[1] px-8"
+            className="flex-shrink-0 bg-background z-[1] px-8"
           />
           {
             emptyState ? (

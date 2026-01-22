@@ -15,7 +15,7 @@ import {
 } from "react-hook-form"
 import * as zod from "zod"
 import {PostCreateDatasetSchema} from "../../api/admin/datasets/validators";
-import {useEffect, useState} from "react";
+import {useEffect, useState, useRef} from "react";
 import {adminApiClient} from "../../admin/lib/admin-client";
 import {ProvidersConfig} from "../../modules/enthusiast/api/types/config";
 import {ChevronRightMini, XMarkMini} from "@medusajs/icons";
@@ -26,13 +26,14 @@ type DatasetCreateFormProps = {
     setRefetch?: React.Dispatch<React.SetStateAction<boolean>>;
     anyActive: boolean;
     isFirst: boolean;
+    defaultOpen?: boolean;
 }
 
-export const DatasetCreateForm = ({ setRefetch, anyActive, isFirst }: DatasetCreateFormProps) => {
+export const DatasetCreateForm = ({ setRefetch, anyActive, isFirst, defaultOpen = false }: DatasetCreateFormProps) => {
   const [providersConfig, setProvidersConfig] = useState<ProvidersConfig | undefined>(undefined);
   const [languageModelNames, setLanguageModelNames] = useState<string[] | undefined>(undefined);
   const [embeddingModels, setEmbeddingModels] = useState<string[] | undefined>(undefined);
-  const [formOpen, setFormOpen] = useState(false)
+  const [formOpen, setFormOpen] = useState(defaultOpen)
   const [advancedOpen, setAdvancedOpen] = useState<boolean>(false);
 
   let defaultValues = {
@@ -45,6 +46,7 @@ export const DatasetCreateForm = ({ setRefetch, anyActive, isFirst }: DatasetCre
   }
 
   const form = useForm<zod.infer<typeof PostCreateDatasetSchema>>({defaultValues})
+  
   useEffect(() => {
     const loadProvidersConfig = async () => {
       const result = await adminApiClient.config().getAvailableProviders();
@@ -146,7 +148,7 @@ export const DatasetCreateForm = ({ setRefetch, anyActive, isFirst }: DatasetCre
                 <div className="flex flex-1 flex-col items-center overflow-y-auto">
                   <div className="mx-auto flex w-full max-w-[720px] flex-col gap-y-8 px-2 py-16">
                     <div>
-                      <Heading className="capitalize">
+                      <Heading>
                           Connect to a language model
                       </Heading>
                     </div>

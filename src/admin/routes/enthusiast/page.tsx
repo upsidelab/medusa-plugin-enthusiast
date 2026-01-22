@@ -1,7 +1,6 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
-import { ChannelsSolid } from "@medusajs/icons"
 import {EnthusiastMain} from "../../../components/admin/main.tsx";
-
+import {EnthusiastIcon} from "../../../components/icons/enthusiast.tsx";
 
 const EnthusiastPage = () => {
   return <EnthusiastMain />
@@ -9,7 +8,7 @@ const EnthusiastPage = () => {
 
 export const config = defineRouteConfig({
   label: "Enthusiast",
-  icon: ChannelsSolid,
+  icon: EnthusiastIcon,
 })
 
 export default EnthusiastPage

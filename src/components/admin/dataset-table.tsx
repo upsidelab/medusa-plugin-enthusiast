@@ -5,18 +5,17 @@ import {
     Heading, IconButton,
     Label,
     RadioGroup,
-    Text,
+    Text, Tooltip,
     useDataTable,
 } from "@medusajs/ui"
 import {useEffect, useState} from "react";
 import {adminApiClient} from "../../admin/lib/admin-client";
 import {EnthusiastDatasetType} from "../../admin/lib/types";
-import {RefreshCw} from "lucide-react";
-import {ActionMenu} from "../../components/admin/action-menu";
 import {ColumnHeaderWithTooltip} from "../../components/admin/column-with-tooltip";
 import {ArrowPath} from "@medusajs/icons";
 import {DatasetCreateForm} from "../../components/admin/dataset-create-form";
 import {LoadingSpinner} from "../../components/utils/spinner";
+import {getFullDate} from "../../admin/lib/utils";
 
 
 export const DatasetTable = () => {
@@ -102,7 +101,13 @@ export const DatasetTable = () => {
           cell: ({ getValue }) => {
             const date = getValue()
             if (date) {
-                date.toLocaleString()
+                return (
+                    <Tooltip
+                      content={getFullDate({ date , includeTime: true })}
+                    >
+                      <span>{getFullDate({ date })}</span>
+                    </Tooltip>
+                )
             }
             return null
           }
@@ -132,7 +137,12 @@ export const DatasetTable = () => {
                         A data set represents a configuration of agents, products and documents sources
                       </Text>
                     </div>
-                    <DatasetCreateForm setRefetch={setRefetch} anyActive={datasets.some((dataset) => dataset.is_active)} isFirst={!datasets.length} />
+                    <DatasetCreateForm 
+                        setRefetch={setRefetch} 
+                        anyActive={datasets.some((dataset) => dataset.is_active)} 
+                        isFirst={!datasets.length}
+                        defaultOpen={!isLoading && datasets.length === 0}
+                    />
                   </DataTable.Toolbar>
                   <DataTable.Table
                       emptyState={{

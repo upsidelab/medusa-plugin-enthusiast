@@ -3,14 +3,14 @@ A Medusa plugin that integrates with Enthusiast.
 
 ## Prerequisite
 1. Access to Enthusiast instance
-2. Enthusiast with configured Medusa source [Docs](https://upsidelab.io/tools/enthusiast/integrations/medusa)
+2. Enthusiast with configured Medusa integration [Docs](https://upsidelab.io/tools/enthusiast/integrations/medusa) //todo Place correct link
 3. Medusa v2.x
 4. Node.js >= 20
 
 ## Installation
 Install the plugin in your Medusa project:
 ```bash
-npm install @uspidelab/medusa-enthusiast
+npm install @uspidelab/medusa-enthusiast //todo place actual name
 ```
 ## Configuration
 ### Environment Variables
@@ -19,12 +19,12 @@ Set you .env file in project root directory:
 ENTHUSIAST_API_URL=http://localhost:10000
 ENTHUSIAST_WS_URL=ws://localhost:10000
 ENTHUSIAST_SERVICE_ACCOUNT_TOKEN=<generated-service-account-token>
-ENTHUSIAST_MEDUSA_PRODUCT_SOURCE_NAME=MedusaSource
+ENTHUSIAST_INTEGRATION_NAME=MedusaSource
 ```
 - `ENTHUSIAST_API_URL`: Your Enthusiast instance base API url.
 - `ENTHUSIAST_WS_URL`: Your Enthusiast instance base WS url.
 - `ENTHUSIAST_SERVICE_ACCOUNT_TOKEN`: Your Enthusiast admin service account's token.
-- `ENTHUSIAST_MEDUSA_PRODUCT_SOURCE_NAME`: Your Enthusiast instance Medusa plugin name.
+- `ENTHUSIAST_INTEGRATION_NAME`: Your Enthusiast instance Medusa integration name.
 - `ENTHUSIAST_MEDUSA_BACKEND_URL(Optional)`: Your medusa backend url, where Enthusiast can send request to(default is set to `http://host.docker.internal:9000` for local docker development)
 ### Enable plugin in Medusa
 Add below entry to your plugins array:
@@ -33,12 +33,12 @@ Add below entry to your plugins array:
 {
   resolve: "@upsideuspidelab/medusa-enthusiast",
   options: {
-    enthusiastApiUrl: process.env.ENTHUSIAST_API_URL,
-    enthusiastWSUrl: process.env.ENTHUSIAST_WS_URL,
-    enthusiastServiceAccountToken: process.env.ENTHUSIAST_SERVICE_ACCOUNT_TOKEN,
-    enthusiastMedusaSourcePluginName: process.env.ENTHUSIAST_MEDUSA_PRODUCT_SOURCE_NAME,
-    medusaBackendUrl: process.env.ENTHUSIAST_MEDUSA_BACKEND_URL,
-  }
+        enthusiastApiUrl: process.env.ENTHUSIAST_API_URL,
+        enthusiastWSUrl: process.env.ENTHUSIAST_WS_URL,
+        enthusiastServiceAccountToken: process.env.ENTHUSIAST_SERVICE_ACCOUNT_TOKEN,
+        enthusiastMedusaIntegrationName: process.env.ENTHUSIAST_INTEGRATION_NAME,
+        medusaBackendUrl: process.env.ENTHUSIAST_MEDUSA_BACKEND_URL,
+      }
 }
 ```
 ### Run Database Migrations

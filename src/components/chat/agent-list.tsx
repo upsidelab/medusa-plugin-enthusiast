@@ -15,9 +15,6 @@ export function AgentList({ agents, currentAgentId, onAgentClick }: AgentListPro
       <Heading level="h3" className="text-lg font-medium">
         List of Agents
       </Heading>
-      <Text className="text-sm text-muted-foreground">
-        Select different agent
-      </Text>
       <div 
         className="space-y-1 flex-1 overflow-y-auto min-h-0 [&::-webkit-scrollbar]:hidden pt-4"
         style={{
