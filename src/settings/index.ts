@@ -4,5 +4,6 @@ export type PluginOptions = {
     enthusiastMedusaSourcePluginName: string;
     enthusiastMedusaIntegrationName: string;
     medusaBackendUrl: string;
+    medusaAdminUrl: string;
     enthusiastWSUrl?: string;
 }

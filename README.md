@@ -19,13 +19,14 @@ Set you .env file in project root directory:
 ENTHUSIAST_API_URL=http://localhost:10000
 ENTHUSIAST_WS_URL=ws://localhost:10000
 ENTHUSIAST_SERVICE_ACCOUNT_TOKEN=<generated-service-account-token>
-ENTHUSIAST_INTEGRATION_NAME=MedusaSource
+ENTHUSIAST_INTEGRATION_NAME=Medusa
 ```
 - `ENTHUSIAST_API_URL`: Your Enthusiast instance base API url.
 - `ENTHUSIAST_WS_URL`: Your Enthusiast instance base WS url.
 - `ENTHUSIAST_SERVICE_ACCOUNT_TOKEN`: Your Enthusiast admin service account's token.
 - `ENTHUSIAST_INTEGRATION_NAME`: Your Enthusiast instance Medusa integration name.
-- `ENTHUSIAST_MEDUSA_BACKEND_URL(Optional)`: Your medusa backend url, where Enthusiast can send request to(default is set to `http://host.docker.internal:9000` for local docker development)
+- `ENTHUSIAST_MEDUSA_BACKEND_URL(Optional)`: Your medusa backend url, where Enthusiast can send request to (default is set to `http://host.docker.internal:9000` for local docker development or admin.backendUrl is set)
+- `ENTHUSIAST_MEDUSA_ADMIN_URL(Optional)`: Your medusa admin url (default is set to `http://localhost:9000`)
 ### Enable plugin in Medusa
 Add below entry to your plugins array:
 #### medusa-config.ts
@@ -38,6 +39,7 @@ Add below entry to your plugins array:
         enthusiastServiceAccountToken: process.env.ENTHUSIAST_SERVICE_ACCOUNT_TOKEN,
         enthusiastMedusaIntegrationName: process.env.ENTHUSIAST_INTEGRATION_NAME,
         medusaBackendUrl: process.env.ENTHUSIAST_MEDUSA_BACKEND_URL,
+        medusaAdminUrl: process.env.ENTHUSIAST_MEDUSA_ADMIN_URL,
       }
 }
 ```

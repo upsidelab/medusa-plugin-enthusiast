@@ -7,12 +7,13 @@ export default async function checkOptionsLoader({ options, container }: LoaderO
     const configModule = container.resolve("configModule")
     const moduleOptions = options as PluginOptions
     const required = {
-          enthusiastApiUrl: moduleOptions.enthusiastApiUrl,
-          enthusiastServiceAccountToken: moduleOptions.enthusiastServiceAccountToken,
-          enthusiastMedusaIntegrationName: moduleOptions.enthusiastMedusaIntegrationName,
+        enthusiastApiUrl: moduleOptions.enthusiastApiUrl,
+        enthusiastServiceAccountToken: moduleOptions.enthusiastServiceAccountToken,
+        enthusiastMedusaIntegrationName: moduleOptions.enthusiastMedusaIntegrationName,
     }
     const defaults = {
         medusaBackendUrl: configModule.admin.backendUrl !== "/" ? configModule.admin.backendUrl : "http://host.docker.internal:9000",
+        medusaAdminUrl: "http://localhost:9000"
     }
 
     const errors = Object.entries(required)

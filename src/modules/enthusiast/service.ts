@@ -195,7 +195,7 @@ export default class EnthusiastService extends MedusaService({EnthusiastDataset}
       created_by: "enthusiast-plugin",
     })
 
-    const plugin = await this.apiClient().dataSets().addDataSetIntegration(dataset.external_id, this.options_.enthusiastMedusaIntegrationName, {api_key:apiKey.token ,base_url: this.options_.medusaBackendUrl})
+    const plugin = await this.apiClient().dataSets().addDataSetIntegration(dataset.external_id, this.options_.enthusiastMedusaIntegrationName, {api_key:apiKey.token ,base_url: this.options_.medusaBackendUrl, admin_base_url: this.options_.medusaAdminUrl})
     await this.updateEnthusiastDatasets({id:dataset.id, is_connected:true, plugin_id:plugin.id, task_id: plugin.task_id, sync_status: SyncStatus.PROCESSING, api_key_id: apiKey.id})
     await syncDatasetStatusWorkflow(container).run({input: {datasetId: dataset.id}})
   }
