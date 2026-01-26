@@ -1,7 +1,7 @@
-import { BaseBubble } from './base-bubble';
-import { FileText, Image, File } from 'lucide-react';
+import { BaseBubble } from "./base-bubble";
+import { FileText, Image, File } from "lucide-react";
 
-import type { FileMessageProps } from './chat-session';
+import type { FileMessageProps } from "./chat-session";
 
 interface AttachmentBubbleProps {
   variant: "primary" | "secondary";
@@ -10,18 +10,23 @@ interface AttachmentBubbleProps {
 }
 
 const getFileIcon = (contentType: string) => {
-  if (contentType.startsWith('image/')) {
+  if (contentType.startsWith("image/")) {
     return <Image className="h-5 w-5 text-muted-foreground" />;
   }
-  if (contentType.includes('pdf') || contentType.includes('text')) {
+  if (contentType.includes("pdf") || contentType.includes("text")) {
     return <FileText className="h-5 w-5 text-muted-foreground" />;
   }
   return <File className="h-5 w-5 text-muted-foreground" />;
 };
 
-export function AttachmentBubble({ variant, message, inMessageGroup }: AttachmentBubbleProps ) {
+export function AttachmentBubble({ variant, message, inMessageGroup }: AttachmentBubbleProps) {
   return (
-    <BaseBubble variant={variant} hasBackground={false} className="px-0 py-0 min-w-[25%]" inMessageGroup={inMessageGroup}>
+    <BaseBubble
+      variant={variant}
+      hasBackground={false}
+      className="px-0 py-0 min-w-[25%]"
+      inMessageGroup={inMessageGroup}
+    >
       <div
         className={`flex items-center space-x-2 rounded-md border border-input bg-background shadow-sm px-3 py-2`}
       >
@@ -29,12 +34,8 @@ export function AttachmentBubble({ variant, message, inMessageGroup }: Attachmen
           {getFileIcon(message.file_type)}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-medium truncate text-foreground">
-            {message.file_name}
-          </div>
-          <div className="text-xs text-muted-foreground">
-            {message.file_type}
-          </div>
+          <div className="text-sm font-medium truncate text-foreground">{message.file_name}</div>
+          <div className="text-xs text-muted-foreground">{message.file_type}</div>
         </div>
       </div>
     </BaseBubble>

@@ -1,9 +1,9 @@
-import { useCallback, useState, useEffect } from 'react';
-import { useDropzone, FileRejection } from 'react-dropzone';
-import { Upload, Paperclip } from 'lucide-react';
-import { Button } from '../../components/ui/button';
-import {cn} from "../../admin/lib/utils";
-import {adminApiClient} from "../../admin/lib/admin-client";
+import { useCallback, useState, useEffect } from "react";
+import { useDropzone, FileRejection } from "react-dropzone";
+import { Upload, Paperclip } from "lucide-react";
+import { Button } from "../../components/ui/button";
+import { cn } from "../../admin/lib/utils";
+import { adminApiClient } from "../../admin/lib/admin-client";
 
 export interface UploadedFile {
   id: string;
@@ -44,49 +44,55 @@ export function FileUpload({
         const result = await adminApiClient.conversations().getSupportedFileTypes();
         setSupportedExtensions(result.supported_extensions || []);
       } catch (error) {
-        console.error('Failed to fetch supported file types:', error);
+        console.error("Failed to fetch supported file types:", error);
       } finally {
         setIsLoadingExtensions(false);
       }
     };
 
-    fetchSupportedFileTypes();
+    void fetchSupportedFileTypes();
   }, []);
 
-  const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: FileRejection[]) => {
-    if (disabled) return;
+  const onDrop = useCallback(
+    (acceptedFiles: File[], rejectedFiles: FileRejection[]) => {
+      if (disabled) return;
 
-    if (rejectedFiles.length > 0) {
-      const errors = rejectedFiles.map(({ file, errors }) => ({
-        file: file.name,
-        errors: errors.map((e: { message: string }) => e.message),
-      }));
-      
-      if (onUploadError) {
-        const errorMessages = errors.map(({ file, errors }) => 
-          `${file}: ${errors.join(', ')}`
-        ).join('; ');
-        onUploadError(errorMessages);
+      if (rejectedFiles.length > 0) {
+        const errors = rejectedFiles.map(({ file, errors }) => ({
+          file: file.name,
+          errors: errors.map((e: { message: string }) => e.message),
+        }));
+
+        if (onUploadError) {
+          const errorMessages = errors
+            .map(({ file, errors }) => `${file}: ${errors.join(", ")}`)
+            .join("; ");
+          onUploadError(errorMessages);
+        }
       }
-    }
 
-    const newFiles: UploadedFile[] = acceptedFiles.map((file) => ({
-      id: Math.random().toString(36).substr(2, 9),
-      file,
-      preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
-    }));
+      const newFiles: UploadedFile[] = acceptedFiles.map((file) => ({
+        id: Math.random().toString(36).substr(2, 9),
+        file,
+        preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined,
+      }));
 
-    onClose();
-    onFilesChange([...uploadedFiles, ...newFiles]);
-  }, [uploadedFiles, onFilesChange, disabled, onUploadError, onClose]);
+      onClose();
+      onFilesChange([...uploadedFiles, ...newFiles]);
+    },
+    [uploadedFiles, onFilesChange, disabled, onUploadError, onClose]
+  );
 
-  const acceptObject = supportedExtensions.reduce((acc, ext) => {
-    if (ext === '.txt') acc['text/plain'] = [];
-    else if (ext === '.pdf') acc['application/pdf'] = [];
-    else if (ext === '.jpg' || ext === '.jpeg') acc['image/jpeg'] = [];
-    else if (ext === '.png') acc['image/png'] = [];
-    return acc;
-  }, {} as Record<string, string[]>);
+  const acceptObject = supportedExtensions.reduce(
+    (acc, ext) => {
+      if (ext === ".txt") acc["text/plain"] = [];
+      else if (ext === ".pdf") acc["application/pdf"] = [];
+      else if (ext === ".jpg" || ext === ".jpeg") acc["image/jpeg"] = [];
+      else if (ext === ".png") acc["image/png"] = [];
+      return acc;
+    },
+    {} as Record<string, string[]>
+  );
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
@@ -94,46 +100,46 @@ export function FileUpload({
     accept: isLoadingExtensions ? undefined : acceptObject,
   });
 
-  return (<>
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon"
-      onClick={open}
-      disabled={disabled}
-      className="shrink-0 left-2 bottom-2 absolute"
-    >
-      <Paperclip className="h-4 w-4" />
-      <span className="sr-only">Attach files</span>
-    </Button>
+  return (
+    <>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        onClick={open}
+        disabled={disabled}
+        className="shrink-0 left-2 bottom-2 absolute"
+      >
+        <Paperclip className="h-4 w-4" />
+        <span className="sr-only">Attach files</span>
+      </Button>
 
-    <input {...getInputProps()} />
+      <input {...getInputProps()} />
 
-    {showUploadArea && (
-      <div className="space-y-3 absolute w-full h-full bg-background rounded-lg z-10">
-        <div
-          {...getRootProps()}
-          className={cn(
-            "relative h-full text-center flex flex-col justify-center transition-colors cursor-pointer",
-            "hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-            isDragActive && "border-primary bg-primary/10",
-            disabled && "opacity-50 cursor-not-allowed",
-            dragActive && "border-primary bg-primary/10"
-          )}
-          onDragEnter={() => setDragActive(true)}
-          onDragLeave={() => setDragActive(false)}
-        >
-        <Upload className="mx-auto h-6 w-6 text-muted-foreground mb-2" />
-        <div className="text-sm text-foreground">Drag and drop files here</div>
-        <div className="text-xs text-muted-foreground mt-1">
-          {isLoadingExtensions ? (
-            'Loading supported file types...'
-          ) : (
-            `Supported types: ${supportedExtensions.join(', ')}`
-          )}
+      {showUploadArea && (
+        <div className="space-y-3 absolute w-full h-full bg-background rounded-lg z-10">
+          <div
+            {...getRootProps()}
+            className={cn(
+              "relative h-full text-center flex flex-col justify-center transition-colors cursor-pointer",
+              "hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+              isDragActive && "border-primary bg-primary/10",
+              disabled && "opacity-50 cursor-not-allowed",
+              dragActive && "border-primary bg-primary/10"
+            )}
+            onDragEnter={() => setDragActive(true)}
+            onDragLeave={() => setDragActive(false)}
+          >
+            <Upload className="mx-auto h-6 w-6 text-muted-foreground mb-2" />
+            <div className="text-sm text-foreground">Drag and drop files here</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              {isLoadingExtensions
+                ? "Loading supported file types..."
+                : `Supported types: ${supportedExtensions.join(", ")}`}
+            </div>
+          </div>
         </div>
-        </div>
-      </div>
-    )}
-  </>);
+      )}
+    </>
+  );
 }

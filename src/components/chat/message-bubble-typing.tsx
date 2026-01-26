@@ -1,5 +1,5 @@
-import styles from './message-bubble-typing.module.css';
-import {cn} from "../../admin/lib/utils";
+import styles from "./message-bubble-typing.module.css";
+import { cn } from "../../admin/lib/utils";
 
 export interface MessageBubbleTypingProps {
   text: string | null;
@@ -13,9 +13,7 @@ export function MessageBubbleTyping({ text }: MessageBubbleTypingProps) {
         <div className={styles.typingDot} />
         <div className={styles.typingDot} />
       </div>
-      {text && (
-        <p className="text-sm ml-2 -mt-1 text-muted-foreground">{text}</p>
-      )}
+      {text && <p className="text-sm ml-2 -mt-1 text-muted-foreground">{text}</p>}
     </div>
   );
 }

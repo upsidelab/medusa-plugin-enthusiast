@@ -1,19 +1,21 @@
 import { Button } from "../../components/ui/button";
 import { Label } from "../../components/ui/label";
-import { Textarea } from "../../components/ui/textarea"
+import { Textarea } from "../../components/ui/textarea";
 import { HTMLAttributes, SyntheticEvent, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "../../components/ui/alert";
 import { MessageFeedbackRating } from "../../components/message-feedback/message-feedback-rating";
-import {adminApiClient} from "../../admin/lib/admin-client";
-import {cn} from "../../admin/lib/utils";
-import {LoadingSpinner} from "../../components/utils/spinner";
-
+import { adminApiClient } from "../../admin/lib/admin-client";
+import { cn } from "../../admin/lib/utils";
+import { LoadingSpinner } from "../../components/utils/spinner";
 
 interface MessageFeedbackFormProps {
   messageId: number | null;
 }
 
-export function MessageFeedbackForm({ messageId }: MessageFeedbackFormProps, { className, ...props }: HTMLAttributes<HTMLDivElement>) {
+export function MessageFeedbackForm(
+  { messageId }: MessageFeedbackFormProps,
+  { className, ...props }: HTMLAttributes<HTMLDivElement>
+) {
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
   const [rating, setRating] = useState<number | null>(null);
@@ -37,11 +39,15 @@ export function MessageFeedbackForm({ messageId }: MessageFeedbackFormProps, { c
     } finally {
       setIsLoading(false);
     }
-  };
+  }
 
   return (
     <div className={cn("grid gap-6", className)} {...props}>
-      <form onSubmit={onSubmit}>
+      <form
+        onSubmit={(e) => {
+          void onSubmit(e);
+        }}
+      >
         <div className="grid gap-4">
           <div className="grid gap-1">
             {isError && (
@@ -51,8 +57,14 @@ export function MessageFeedbackForm({ messageId }: MessageFeedbackFormProps, { c
               </Alert>
             )}
 
-            <Label className="sr-only" htmlFor="rating">Rating</Label>
-            <MessageFeedbackRating disabled={isSubmitted} rating={rating} onRatingChange={setRating} />
+            <Label className="sr-only" htmlFor="rating">
+              Rating
+            </Label>
+            <MessageFeedbackRating
+              disabled={isSubmitted}
+              rating={rating}
+              onRatingChange={setRating}
+            />
           </div>
 
           <div className="grid gap-2">
@@ -66,14 +78,14 @@ export function MessageFeedbackForm({ messageId }: MessageFeedbackFormProps, { c
           </div>
 
           <Button disabled={isLoading || isSubmitted} type="submit">
-            { isSubmitted ?
+            {isSubmitted ? (
               <>Thank you for your feedback!</>
-              :
+            ) : (
               <>
                 {isLoading && <LoadingSpinner />}
                 Submit Feedback
               </>
-            }
+            )}
           </Button>
         </div>
       </form>

@@ -1,10 +1,10 @@
-import { Tooltip } from "@medusajs/ui"
-import { InformationCircle } from "@medusajs/icons"
+import { Tooltip } from "@medusajs/ui";
+import { InformationCircle } from "@medusajs/icons";
 
 type ColumnHeaderWithTooltipProps = {
-  name: string
-  tooltip: string
-}
+  name: string;
+  tooltip: string;
+};
 
 export const ColumnHeaderWithTooltip = ({ name, tooltip }: ColumnHeaderWithTooltipProps) => {
   return (
@@ -13,14 +13,11 @@ export const ColumnHeaderWithTooltip = ({ name, tooltip }: ColumnHeaderWithToolt
 
       {tooltip && (
         <Tooltip content={tooltip}>
-          <button
-            type="button"
-            className="text-ui-fg-subtle hover:text-ui-fg-base"
-          >
+          <button type="button" className="text-ui-fg-subtle hover:text-ui-fg-base">
             <InformationCircle />
           </button>
         </Tooltip>
       )}
     </div>
-  )
-}
+  );
+};

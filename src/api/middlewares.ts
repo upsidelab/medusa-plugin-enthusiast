@@ -1,8 +1,8 @@
-import {defineMiddlewares, validateAndTransformBody} from "@medusajs/framework/http"
-import multer from "multer"
-import {PostCreateDatasetSchema} from "../api/admin/datasets/validators";
+import { defineMiddlewares, validateAndTransformBody } from "@medusajs/framework/http";
+import multer from "multer";
+import { PostCreateDatasetSchema } from "../api/admin/datasets/validators";
 
-const upload = multer()
+const upload = multer();
 
 export default defineMiddlewares({
   routes: [
@@ -16,10 +16,7 @@ export default defineMiddlewares({
     {
       matcher: "/admin/enthusiast/datasets",
       method: "POST",
-      middlewares: [
-        validateAndTransformBody(PostCreateDatasetSchema),
-      ],
+      middlewares: [validateAndTransformBody(PostCreateDatasetSchema)],
     },
-
   ],
-})
+});

@@ -6,13 +6,13 @@ export type ProvidersConfigResponse = {
 export type ProvidersConfig = {
   languageModelProviders: string[];
   embeddingProviders: string[];
-}
+};
 
 export type Plugin = {
   name: string;
-  configuration_args: any
-}
+  configuration_args: any;
+};
 
 export type PluginsConfig = {
   choices: Plugin[];
-}
+};

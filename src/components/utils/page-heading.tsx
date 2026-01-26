@@ -1,6 +1,5 @@
 import { ReactNode } from "react";
-import {cn} from "../../admin/lib/utils";
-
+import { cn } from "../../admin/lib/utils";
 
 export interface PageHeadingProps {
   title: string;
@@ -15,10 +14,10 @@ export function PageHeading({ title, description, className, children }: PageHea
       <div className="flex">
         <div>
           <h3 className="text-lg font-medium">{title}</h3>
-            { description && <p className="text-sm text-muted-foreground">{description}</p>}
+          {description && <p className="text-sm text-muted-foreground">{description}</p>}
         </div>
         {children}
       </div>
     </div>
-  )
+  );
 }

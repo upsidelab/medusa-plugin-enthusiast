@@ -24,9 +24,7 @@ export function BaseBubble({
           hasBackground &&
             variant === "primary" &&
             "bg-[#F4F4F5] dark:bg-[#2A2D31] text-foreground",
-          hasBackground &&
-            variant === "secondary" &&
-            "bg-muted",
+          hasBackground && variant === "secondary" && "bg-muted",
           className
         )}
       >

@@ -1,6 +1,5 @@
 import { Heading, Button, Container } from "@medusajs/ui";
 import { Check } from "@medusajs/icons";
-import { PlusIcon } from "lucide-react";
 import { Conversation } from "../../modules/enthusiast/api/types/conversation";
 import { cn } from "../../admin/lib/utils";
 
@@ -22,19 +21,14 @@ export function ConversationHistory({
       <Heading level="h3" className="text-lg font-medium pb-4">
         Conversation History
       </Heading>
-      <Button
-        variant="secondary"
-        size="small"
-        className="w-full mb-3"
-        onClick={onNewChat}
-      >
+      <Button variant="secondary" size="small" className="w-full mb-3" onClick={onNewChat}>
         Start New Chat
       </Button>
-      <div 
+      <div
         className="space-y-1 flex-1 overflow-y-auto min-h-0 [&::-webkit-scrollbar]:hidden pt-4"
         style={{
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none'
+          scrollbarWidth: "none",
+          msOverflowStyle: "none",
         }}
       >
         {conversations.length === 0 ? (
@@ -55,7 +49,9 @@ export function ConversationHistory({
               >
                 {isSelected && <Check className="w-4 h-4" />}
                 {!isSelected && <div className="w-4 h-4" />}
-                <span className="flex-1 text-left">{conv.summary || `Conversation ${conv.id}`}</span>
+                <span className="flex-1 text-left">
+                  {conv.summary || `Conversation ${conv.id}`}
+                </span>
               </button>
             );
           })

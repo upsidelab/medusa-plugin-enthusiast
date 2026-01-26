@@ -6,7 +6,7 @@ export type DataSetResponse = {
   embedding_provider: string;
   embedding_model: string;
   embedding_vector_dimensions: number;
-}
+};
 
 export type CreateDataSetPayload = {
   name: string;
@@ -15,20 +15,20 @@ export type CreateDataSetPayload = {
   embedding_provider: string;
   embedding_model: string;
   embedding_vector_dimensions: number;
-}
+};
 export type UpdateDataSetPayload = {
   id: number | undefined;
   name: string;
   language_model_provider: string;
   language_model: string;
-}
+};
 
 export type ProductSourceResponse = {
   id: number;
   plugin_name: string;
   config: string;
   data_set_id: number;
-}
+};
 
 export type ConfigureProductSourcePayload = ProductSourceResponse;
 
@@ -37,7 +37,7 @@ export type DocumentSourceResponse = {
   plugin_name: string;
   config: string;
   data_set_id: number;
-}
+};
 
 export type ConfigureDocumentSourcePayload = DocumentSourceResponse;
 
@@ -50,7 +50,7 @@ export type DataSet = {
   embeddingModel: string;
   embeddingVectorSize: number;
   systemMessage: string;
-}
+};
 
 export type CatalogSource = {
   id: number;
@@ -59,10 +59,10 @@ export type CatalogSource = {
   data_set_id: number;
   corrupted: boolean;
   task_id?: string | null;
-}
+};
 export type SyncResponse = {
   task_id: string;
-}
+};
 
 export type Document = {
   id: number;
@@ -70,12 +70,11 @@ export type Document = {
   title: string;
   content: string;
   isIndexed: boolean;
-}
-
+};
 
 export type User = {
   id: number;
   email: string;
   isActive: boolean;
   isStaff: boolean;
-}
+};

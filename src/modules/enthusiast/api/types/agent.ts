@@ -12,7 +12,7 @@ export type Account = {
   id: number;
   email: string;
   is_staff: boolean;
-}
+};
 
 export type TypeInfo = {
   container: string | null;

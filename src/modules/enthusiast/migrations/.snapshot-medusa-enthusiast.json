@@ -1,7 +1,5 @@
 {
-  "namespaces": [
-    "public"
-  ],
+  "namespaces": ["public"],
   "name": "public",
   "tables": [
     {
@@ -79,11 +77,7 @@
           "autoincrement": false,
           "primary": false,
           "nullable": true,
-          "enumItems": [
-            "processing",
-            "success",
-            "failed"
-          ],
+          "enumItems": ["processing", "success", "failed"],
           "mappedType": "enum"
         },
         "api_key_id": {
@@ -161,9 +155,7 @@
         },
         {
           "keyName": "enthusiast_dataset_pkey",
-          "columnNames": [
-            "id"
-          ],
+          "columnNames": ["id"],
           "composite": false,
           "constraint": true,
           "primary": true,

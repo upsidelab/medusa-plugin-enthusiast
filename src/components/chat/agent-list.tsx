@@ -1,4 +1,4 @@
-import { Heading, Text, Container } from "@medusajs/ui";
+import { Heading, Container } from "@medusajs/ui";
 import { Check } from "@medusajs/icons";
 import { Agent } from "../../modules/enthusiast/api/types/agent";
 import { cn } from "../../admin/lib/utils";
@@ -15,16 +15,16 @@ export function AgentList({ agents, currentAgentId, onAgentClick }: AgentListPro
       <Heading level="h3" className="text-lg font-medium">
         List of Agents
       </Heading>
-      <div 
+      <div
         className="space-y-1 flex-1 overflow-y-auto min-h-0 [&::-webkit-scrollbar]:hidden pt-4"
         style={{
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none'
+          scrollbarWidth: "none",
+          msOverflowStyle: "none",
         }}
       >
         {agents.map((agent) => {
           const isSelected = currentAgentId === agent.id;
-          
+
           return (
             <button
               key={agent.id}

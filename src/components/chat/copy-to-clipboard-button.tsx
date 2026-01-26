@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { Button } from '../../components/ui/button';
-import { CopyIcon } from 'lucide-react';
+import { useState } from "react";
+import { Button } from "../../components/ui/button";
+import { CopyIcon } from "lucide-react";
 
 export interface CopyToClipboardButtonProps {
   message: string;
-  variant: "default" | "ghost"
+  variant: "default" | "ghost";
 }
 
 export function CopyToClipboardButton({ message, variant }: CopyToClipboardButtonProps) {
@@ -20,9 +20,14 @@ export function CopyToClipboardButton({ message, variant }: CopyToClipboardButto
   };
 
   return (
-    <Button onClick={handleCopyClick} variant={variant}>
+    <Button
+      onClick={() => {
+        void handleCopyClick();
+      }}
+      variant={variant}
+    >
       <CopyIcon />
-      {isCopied ? 'Copied!' : 'Copy'}
+      {isCopied ? "Copied!" : "Copy"}
     </Button>
   );
 }

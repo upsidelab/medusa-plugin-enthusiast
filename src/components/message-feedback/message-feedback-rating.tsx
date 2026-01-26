@@ -7,14 +7,18 @@ interface MessageFeedbackRatingProps {
 }
 
 const values = [
-  {value: 1, label: 'Poor'},
-  {value: 2, label: 'Fair'},
-  {value: 3, label: 'Good'},
-  {value: 4, label: 'Very Good'},
-  {value: 5, label: 'Excellent'},
+  { value: 1, label: "Poor" },
+  { value: 2, label: "Fair" },
+  { value: 3, label: "Good" },
+  { value: 4, label: "Very Good" },
+  { value: 5, label: "Excellent" },
 ];
 
-export function MessageFeedbackRating({onRatingChange, rating, disabled}: MessageFeedbackRatingProps) {
+export function MessageFeedbackRating({
+  onRatingChange,
+  rating,
+  disabled,
+}: MessageFeedbackRatingProps) {
   const classNamesForButton = (value: number) => {
     if (value === rating) {
       return "border border-black";
@@ -24,12 +28,15 @@ export function MessageFeedbackRating({onRatingChange, rating, disabled}: Messag
 
   return (
     <div className="flex space-x-2">
-      {values.map(({value, label}) => (
-        <Button variant="outline"
-                disabled={disabled}
-                type="button"
-                className={classNamesForButton(value)}
-                onClick={() => onRatingChange(value)}>
+      {values.map(({ value, label }) => (
+        <Button
+          variant="outline"
+          key={value}
+          disabled={disabled}
+          type="button"
+          className={classNamesForButton(value)}
+          onClick={() => onRatingChange(value)}
+        >
           {label}
         </Button>
       ))}

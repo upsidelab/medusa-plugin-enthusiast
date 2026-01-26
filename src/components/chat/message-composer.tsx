@@ -1,15 +1,15 @@
 import { ChangeEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
-import './message-composer.css';
+import "./message-composer.css";
 import { FileUpload, UploadedFile } from "./file-upload";
 import { FileList } from "./file-list";
 
 import type { HandleFileRemove } from "./file-list";
-import {adminApiClient} from "../../admin/lib/admin-client";
-import {cn} from "../../admin/lib/utils";
-import {Textarea} from "../ui/textarea";
-import {Button} from "../ui/button";
-import {Loader} from "@medusajs/icons";
-import {Send} from "lucide-react";
+import { adminApiClient } from "../../admin/lib/admin-client";
+import { cn } from "../../admin/lib/utils";
+import { Textarea } from "../ui/textarea";
+import { Button } from "../ui/button";
+import { Loader } from "@medusajs/icons";
+import { Send } from "lucide-react";
 
 export interface MessageFile {
   id: number;
@@ -20,7 +20,6 @@ export interface Message {
   text: string;
   files: MessageFile[];
 }
-
 
 export type OnSubmit = (message: Message, createdConversationId?: number) => void;
 
@@ -35,8 +34,14 @@ export interface MessageComposerProps {
 
 const maxHeight = 300;
 
-
-export function MessageComposer({ onSubmit, isLoading, conversationLocked = false, conversationId, agentId, fileUploadEnabled }: MessageComposerProps) {
+export function MessageComposer({
+  onSubmit,
+  isLoading,
+  conversationLocked = false,
+  conversationId,
+  agentId,
+  fileUploadEnabled,
+}: MessageComposerProps) {
   const [input, setInput] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [showUploadArea, setShowUploadArea] = useState(false);
@@ -90,9 +95,9 @@ export function MessageComposer({ onSubmit, isLoading, conversationLocked = fals
       return;
     }
 
-    element.style.height = '0px';
+    element.style.height = "0px";
     element.style.height = `${Math.min(element.scrollHeight, maxHeight)}px`;
-  }
+  };
 
   const uploadFile = async (file: File, conversationId: number): Promise<string> => {
     const uploadResponse = await adminApiClient.conversations().uploadFile(conversationId, file);
@@ -106,17 +111,17 @@ export function MessageComposer({ onSubmit, isLoading, conversationLocked = fals
     while (attempts < maxAttempts) {
       const statusData = await adminApiClient.conversations().getFileUploadStatus(taskId);
 
-      if (statusData.status === 'SUCCESS') {
+      if (statusData.status === "SUCCESS") {
         return statusData.result!.file_id!;
-      } else if (statusData.status === 'FAILURE') {
-        throw new Error(statusData.result?.error || 'Upload failed');
+      } else if (statusData.status === "FAILURE") {
+        throw new Error(statusData.result?.error || "Upload failed");
       }
 
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       attempts++;
     }
 
-    throw new Error('Upload timeout - please try again');
+    throw new Error("Upload timeout - please try again");
   };
 
   const resetComposer = () => {
@@ -125,7 +130,7 @@ export function MessageComposer({ onSubmit, isLoading, conversationLocked = fals
     setShowUploadArea(false);
     setUploadError(null);
     createdConversationIdRef.current = null;
-    
+
     setTimeout(() => {
       resizeTextArea(inputRef.current!);
     });
@@ -133,15 +138,15 @@ export function MessageComposer({ onSubmit, isLoading, conversationLocked = fals
   const submitMessage = async () => {
     if (inputLength === 0) return;
 
-    const allFilesReady = uploadedFiles.every(f => f.uploaded && f.fileId);
-    const hasUploadingFiles = uploadedFiles.some(f => f.uploading);
-    const hasErrors = uploadedFiles.some(f => f.uploadError);
+    const allFilesReady = uploadedFiles.every((f) => f.uploaded && f.fileId);
+    const hasUploadingFiles = uploadedFiles.some((f) => f.uploading);
+    const hasErrors = uploadedFiles.some((f) => f.uploadError);
 
     if (uploadedFiles.length > 0 && !allFilesReady) {
       if (hasUploadingFiles) {
-        setUploadError('Please wait for all files to finish uploading.');
+        setUploadError("Please wait for all files to finish uploading.");
       } else if (hasErrors) {
-        setUploadError('Please fix upload errors before sending.');
+        setUploadError("Please fix upload errors before sending.");
       }
       return;
     }
@@ -154,76 +159,81 @@ export function MessageComposer({ onSubmit, isLoading, conversationLocked = fals
 
     try {
       setUploadingFiles(true);
-      
+
       const message = {
         text: input,
-        files: uploadedFiles.filter(f => f.uploaded && f.fileId).map(f => ({
-          id: f.fileId!,
-          name: f.file.name,
-          type: f.file.name.includes('.') ? f.file.name.split('.').pop() : '',
-        }))
+        files: uploadedFiles
+          .filter((f) => f.uploaded && f.fileId)
+          .map((f) => ({
+            id: f.fileId!,
+            name: f.file.name,
+            type: f.file.name.includes(".") ? f.file.name.split(".").pop() : "",
+          })),
       } as Message;
 
       onSubmit(message, createdConversationIdRef.current || undefined);
       resetComposer();
     } catch {
-      setUploadError('Failed to send message. Please try again.');
+      setUploadError("Failed to send message. Please try again.");
     } finally {
       setUploadingFiles(false);
     }
-  }
+  };
 
   const handleTextAreaInput = (event: ChangeEvent<HTMLTextAreaElement>) => {
     setInput(event.target.value);
     resizeTextArea(event.target);
-  }
+  };
 
   const handleTextAreaKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.shiftKey || event.key !== 'Enter')
-      return;
+    if (event.shiftKey || event.key !== "Enter") return;
 
     event.preventDefault();
-    submitMessage();
-  }
+    void submitMessage();
+  };
 
-const handleFilesChange = async (files: UploadedFile[]) => {
-  setUploadedFiles(files.map(f => ({ ...f, uploading: true, uploadError: undefined })));
-  let currentConversationId = conversationId || createdConversationIdRef.current;
+  const handleFilesChange = async (files: UploadedFile[]) => {
+    setUploadedFiles(files.map((f) => ({ ...f, uploading: true, uploadError: undefined })));
+    let currentConversationId = conversationId || createdConversationIdRef.current;
 
-  if (!currentConversationId && agentId) {
-    currentConversationId = await adminApiClient.conversations().createConversation(agentId);
-    createdConversationIdRef.current = currentConversationId;
-  }
-
-  if (!currentConversationId) {
-    throw new Error('No conversation ID available for file upload');
-  }
-  const uploadPromises = files.map(async file => {
-    try {
-      const taskId = await uploadFile(file.file, currentConversationId);
-
-      setUploadedFiles(prev => prev.map(f =>
-        f.id === file.id ? { ...f, taskId, uploading: true } : f
-      ));
-
-      const fileId = await pollUploadStatus(taskId);
-
-      setUploadedFiles(prev => prev.map(f =>
-        f.id === file.id ? { ...f, uploaded: true, fileId, uploading: false } : f
-      ));
-    } catch {
-      setUploadedFiles(prev => prev.map(f =>
-        f.id === file.id ? { ...f, uploading: false, uploadError: 'Upload failed' } : f
-      ));
+    if (!currentConversationId && agentId) {
+      currentConversationId = await adminApiClient.conversations().createConversation(agentId);
+      createdConversationIdRef.current = currentConversationId;
     }
-  });
 
-  await Promise.all(uploadPromises);
-};
+    if (!currentConversationId) {
+      throw new Error("No conversation ID available for file upload");
+    }
+    const uploadPromises = files.map(async (file) => {
+      try {
+        const taskId = await uploadFile(file.file, currentConversationId);
+
+        setUploadedFiles((prev) =>
+          prev.map((f) => (f.id === file.id ? { ...f, taskId, uploading: true } : f))
+        );
+
+        const fileId = await pollUploadStatus(taskId);
+
+        setUploadedFiles((prev) =>
+          prev.map((f) =>
+            f.id === file.id ? { ...f, uploaded: true, fileId, uploading: false } : f
+          )
+        );
+      } catch {
+        setUploadedFiles((prev) =>
+          prev.map((f) =>
+            f.id === file.id ? { ...f, uploading: false, uploadError: "Upload failed" } : f
+          )
+        );
+      }
+    });
+
+    await Promise.all(uploadPromises);
+  };
 
   const handleFileRemove: HandleFileRemove = (fileId) => {
-    setUploadedFiles(prev => {
-      const newFiles = prev.filter(f => f.id !== fileId);
+    setUploadedFiles((prev) => {
+      const newFiles = prev.filter((f) => f.id !== fileId);
       if (newFiles.length === 0) {
         setShowUploadArea(false);
       }
@@ -255,14 +265,21 @@ const handleFilesChange = async (files: UploadedFile[]) => {
       <form
         onSubmit={(event) => {
           event.preventDefault();
-          submitMessage();
+          void submitMessage();
         }}
         className="flex w-full items-center space-x-2 relative"
       >
-        <div className={cn("relative flex-1 rounded-md border bg-background", showUploadArea && 'border-dashed')}>
+        <div
+          className={cn(
+            "relative flex-1 rounded-md border bg-background",
+            showUploadArea && "border-dashed"
+          )}
+        >
           {fileUploadEnabled && (
             <FileUpload
-              onFilesChange={handleFilesChange}
+              onFilesChange={(files) => {
+                void handleFilesChange(files);
+              }}
               uploadedFiles={uploadedFiles}
               disabled={isLoading || uploadingFiles || conversationLocked}
               onClose={() => setShowUploadArea(false)}
@@ -273,7 +290,9 @@ const handleFilesChange = async (files: UploadedFile[]) => {
           <Textarea
             id="message"
             ref={inputRef}
-            placeholder={conversationLocked ? "This agent is no longer available." : "Type your message..."}
+            placeholder={
+              conversationLocked ? "This agent is no longer available." : "Type your message..."
+            }
             className="w-full resize-none border-0 focus-visible:ring-0 focus-visible:outline-none shadow-none pt-3"
             autoComplete="off"
             value={input}
@@ -287,11 +306,11 @@ const handleFilesChange = async (files: UploadedFile[]) => {
               size="icon"
               className="ml-auto mr-2 mb-2"
               disabled={
-                isLoading || 
-                uploadingFiles || 
-                inputLength === 0 || 
+                isLoading ||
+                uploadingFiles ||
+                inputLength === 0 ||
                 conversationLocked ||
-                uploadedFiles.some(f => f.uploading || f.uploadError)
+                uploadedFiles.some((f) => f.uploading || f.uploadError)
               }
             >
               {isLoading || uploadingFiles ? (

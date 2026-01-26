@@ -1,20 +1,29 @@
-import {AgentDetails, Agent, Account} from "./types/agent";
+import { AgentDetails, Agent, Account } from "./types/agent";
 import {
-    Conversation,
-    CreateConversationPayload,
-    CreateMessagePayload, FeedbackData, FileUploadResponse, FileUploadStatusResponse, Message,
-    PaginatedResult, SupportedFileTypes,
-    TaskHandle,
-    TaskState
+  Conversation,
+  CreateConversationPayload,
+  CreateMessagePayload,
+  FeedbackData,
+  FileUploadResponse,
+  FileUploadStatusResponse,
+  Message,
+  PaginatedResult,
+  SupportedFileTypes,
+  TaskHandle,
+  TaskState,
 } from "./types/conversation";
 import {
   CatalogSource,
-  ConfigureDocumentSourcePayload, ConfigureProductSourcePayload, CreateDataSetPayload,
-  DataSet, DataSetResponse,
+  ConfigureDocumentSourcePayload,
+  ConfigureProductSourcePayload,
+  CreateDataSetPayload,
+  DataSet,
+  DataSetResponse,
   DocumentSourceResponse,
-  ProductSourceResponse, SyncResponse
+  ProductSourceResponse,
+  SyncResponse,
 } from "./types/dataset";
-import {PluginsConfig, ProvidersConfig, ProvidersConfigResponse} from "./types/config";
+import { PluginsConfig, ProvidersConfig, ProvidersConfigResponse } from "./types/config";
 
 export class EnthusiastAPIError extends Error {
   constructor(
@@ -27,117 +36,141 @@ export class EnthusiastAPIError extends Error {
 }
 
 export abstract class BaseApiClient {
-  constructor(protected readonly apiBase: string, protected readonly apiToken: string) {}
+  constructor(
+    protected readonly apiBase: string,
+    protected readonly apiToken: string
+  ) {}
 
   _requestConfiguration(): RequestInit {
     return {
       headers: {
-        "Authorization": `Token ${this.apiToken}`,
-        "Content-Type": "application/json"
-      }
-    }
+        Authorization: `Token ${this.apiToken}`,
+        "Content-Type": "application/json",
+      },
+    };
   }
 
   async _extractErrorMessage(responseObj: Response): Promise<string> {
     let errorMessage: string;
     try {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const errorObj = await responseObj.json();
       if (!errorObj || typeof errorObj !== "object") {
-        return "Unknown error"
+        return "Unknown error";
       }
-      const firstEntry = Object.entries(errorObj)[0] as [string, any] | undefined
+      const firstEntry = Object.entries(errorObj)[0] as [string, any] | undefined;
 
-      if (!firstEntry) return "Unknown error"
+      if (!firstEntry) return "Unknown error";
 
-      const [key, value] = firstEntry
-      let message: string
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const [key, value] = firstEntry;
+      let message: string;
 
       if (Array.isArray(value)) {
-        message = String(value[0])
+        message = String(value[0]);
       } else if (typeof value === "string") {
-        message = value
+        message = value;
       } else {
-        message = JSON.stringify(value)
+        message = JSON.stringify(value);
       }
 
-      return `${key}: ${message}`
+      return `${key}: ${message}`;
     } catch {
-        errorMessage = await responseObj.text();
-      }
-      return errorMessage
+      errorMessage = await responseObj.text();
+    }
+    return errorMessage;
   }
 
   async raiseForStatus(response: Response): Promise<Response> {
     if (!response.ok) {
-      const errorMessage = await this._extractErrorMessage(response)
+      const errorMessage = await this._extractErrorMessage(response);
       throw new EnthusiastAPIError(response.status, response.statusText, errorMessage);
     }
-    return response
+    return response;
   }
   async sendRequest(path: string, init: RequestInit) {
-    const response = await fetch(path, init)
-    await this.raiseForStatus(response)
-    return response
+    const response = await fetch(path, init);
+    await this.raiseForStatus(response);
+    return response;
   }
 }
 
 export class ConversationsApiClient extends BaseApiClient {
-  async getConversations(dataSetId: number, agentId: number | undefined = undefined, page: number = 1): Promise<PaginatedResult<Conversation>> {
-    let url = `${this.apiBase}/api/conversations?data_set_id=${dataSetId}&page=${page}`
+  async getConversations(
+    dataSetId: number,
+    agentId: number | undefined = undefined,
+    page: number = 1
+  ): Promise<PaginatedResult<Conversation>> {
+    let url = `${this.apiBase}/api/conversations?data_set_id=${dataSetId}&page=${page}`;
     if (agentId) {
-      url = url + `&agent_id=${agentId}`
+      url = url + `&agent_id=${agentId}`;
     }
     const response = await this.sendRequest(url, this._requestConfiguration());
-    return await response.json() as Promise<PaginatedResult<Conversation>>;
+    return (await response.json()) as Promise<PaginatedResult<Conversation>>;
   }
 
   async createConversation(agentId: number): Promise<number> {
     const requestBody: CreateConversationPayload = {
-      agent_id: agentId
+      agent_id: agentId,
     };
 
     const requestConfiguration = this._requestConfiguration();
     requestConfiguration.method = "POST";
     requestConfiguration.body = JSON.stringify(requestBody);
 
-    const response = await this.sendRequest(`${this.apiBase}/api/conversations`, requestConfiguration);
+    const response = await this.sendRequest(
+      `${this.apiBase}/api/conversations`,
+      requestConfiguration
+    );
 
     if (!response.ok) {
       throw new Error(`Failed to create conversation: ${response.statusText}`);
     }
 
-    const { id } = await response.json();
+    const { id } = await response.json() as {id: number};
     return id;
   }
 
-  async sendMessage(conversationId: number, dataSetId: number, message: string, streaming: boolean, fileIds?: number[]): Promise<TaskHandle> {
+  async sendMessage(
+    conversationId: number,
+    dataSetId: number,
+    message: string,
+    streaming: boolean,
+    fileIds?: number[]
+  ): Promise<TaskHandle> {
     const requestBody: CreateMessagePayload = {
-      "question_message": message,
-      "data_set_id": dataSetId,
+      question_message: message,
+      data_set_id: dataSetId,
       streaming,
-      file_ids: fileIds
-    }
+      file_ids: fileIds,
+    };
 
     const response = await this.sendRequest(`${this.apiBase}/api/conversations/${conversationId}`, {
       ...this._requestConfiguration(),
       method: "POST",
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
       throw new Error(`Failed to enqueue task: ${response.statusText}`);
     }
 
-    return await response.json() as TaskHandle;
+    return (await response.json()) as TaskHandle;
   }
 
   async getTaskStatus(taskHandle: TaskHandle): Promise<string> {
-    const response = await this.sendRequest(`${this.apiBase}/api/task_status/${taskHandle.task_id}`, {...this._requestConfiguration()});
-    const { state } = await response.json() as TaskState;
+    const response = await this.sendRequest(
+      `${this.apiBase}/api/task_status/${taskHandle.task_id}`,
+      { ...this._requestConfiguration() }
+    );
+    const { state } = (await response.json()) as TaskState;
     return state;
   }
 
-  async fetchResponseMessage(conversationId: number, taskHandle: TaskHandle): Promise<Message | null> {
+  async fetchResponseMessage(
+    conversationId: number,
+    taskHandle: TaskHandle
+  ): Promise<Message | null> {
     const taskStatus = await this.getTaskStatus(taskHandle);
 
     if (taskStatus === "SUCCESS" || taskStatus === "FAILURE") {
@@ -150,9 +183,12 @@ export class ConversationsApiClient extends BaseApiClient {
 
   async getConversation(conversation_id: number | null): Promise<Conversation> {
     try {
-      const response = await this.sendRequest(`${this.apiBase}/api/conversations/${conversation_id}`, {
-        ...this._requestConfiguration()
-      });
+      const response = await this.sendRequest(
+        `${this.apiBase}/api/conversations/${conversation_id}`,
+        {
+          ...this._requestConfiguration(),
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`Failed to get conversation: ${response.statusText}`);
@@ -171,7 +207,7 @@ export class ConversationsApiClient extends BaseApiClient {
   async updateMessageFeedback(messageId: number | null, feedbackData: FeedbackData): Promise<void> {
     const response = await this.sendRequest(`${this.apiBase}/api/messages/${messageId}/feedback/`, {
       ...this._requestConfiguration(),
-      method: 'PATCH',
+      method: "PATCH",
       body: JSON.stringify(feedbackData),
     });
 
@@ -179,21 +215,21 @@ export class ConversationsApiClient extends BaseApiClient {
       throw new Error(`Could not update feedback for message ID ${messageId}`);
     }
 
-    return await response.json() as Promise<void>;
+    return (await response.json()) as Promise<void>;
   }
 
   async getSupportedFileTypes(): Promise<SupportedFileTypes> {
     try {
       const response = await this.sendRequest(`${this.apiBase}/api/supported-file-types/`, {
         ...this._requestConfiguration(),
-        method: 'GET',
+        method: "GET",
       });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      return await response.json() as SupportedFileTypes;
+      return (await response.json()) as SupportedFileTypes;
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Failed to get supported file types: ${error.message}`);
@@ -205,105 +241,126 @@ export class ConversationsApiClient extends BaseApiClient {
 
   async uploadFile(conversationId: number, file: File): Promise<FileUploadResponse> {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append("file", file);
 
     const requestConfig = this._requestConfiguration();
     const headers = { ...requestConfig.headers } as Record<string, string>;
-    delete headers['Content-Type'];
+    delete headers["Content-Type"];
 
-    const response = await this.sendRequest(`${this.apiBase}/api/conversations/${conversationId}/upload/`, {
-      ...requestConfig,
-      method: 'POST',
-      headers,
-      body: formData,
-    });
+    const response = await this.sendRequest(
+      `${this.apiBase}/api/conversations/${conversationId}/upload/`,
+      {
+        ...requestConfig,
+        method: "POST",
+        headers,
+        body: formData,
+      }
+    );
 
     if (!response.ok) {
       throw new Error(`Failed to start file upload: ${response.status} ${response.statusText}`);
     }
 
-    return await response.json() as FileUploadResponse;
+    return (await response.json()) as FileUploadResponse;
   }
 
   async getFileUploadStatus(taskId: string): Promise<FileUploadStatusResponse> {
-    const response = await this.sendRequest(`${this.apiBase}/api/file-upload-status/${taskId}/`, this._requestConfiguration());
+    const response = await this.sendRequest(
+      `${this.apiBase}/api/file-upload-status/${taskId}/`,
+      this._requestConfiguration()
+    );
 
     if (!response.ok) {
-      throw new Error('Failed to check upload status');
+      throw new Error("Failed to check upload status");
     }
 
-    return await response.json() as FileUploadStatusResponse;
+    return (await response.json()) as FileUploadStatusResponse;
   }
 }
 
-
-
-
 export class DataSetsApiClient extends BaseApiClient {
   async getDataSets(): Promise<DataSet[]> {
-    const response = await this.sendRequest(`${this.apiBase}/api/data_sets`, this._requestConfiguration());
-    return (await response.json()).results as DataSet[];
+    const response = await this.sendRequest(
+      `${this.apiBase}/api/data_sets`,
+      this._requestConfiguration()
+    );
+    const data = await response.json() as {results: DataSet[]};
+    return data.results;
   }
 
   async createDataSet(payload: CreateDataSetPayload): Promise<number> {
-    const response = await this.sendRequest(`${this.apiBase}/api/data_sets`,
-      {
-        ...this._requestConfiguration(),
-        body: JSON.stringify(payload),
-        method: 'POST'
-      }
-    );
+    const response = await this.sendRequest(`${this.apiBase}/api/data_sets`, {
+      ...this._requestConfiguration(),
+      body: JSON.stringify(payload),
+      method: "POST",
+    });
 
     const responseJson = (await response.json()) as DataSetResponse;
-    return responseJson.id!;
+    return responseJson.id;
   }
 
   async configureDataSetProductSource(productSource: CatalogSource): Promise<number> {
     const body: ConfigureProductSourcePayload = {
       id: productSource.id,
       plugin_name: productSource.plugin_name,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       config: JSON.parse(productSource.config),
-      data_set_id: productSource.data_set_id
-    }
+      data_set_id: productSource.data_set_id,
+    };
 
-    const response = await this.sendRequest(`${this.apiBase}/api/data_sets/${productSource.data_set_id}/product_sources/${productSource.id}`,
+    const response = await this.sendRequest(
+      `${this.apiBase}/api/data_sets/${productSource.data_set_id}/product_sources/${productSource.id}`,
       {
         ...this._requestConfiguration(),
         body: JSON.stringify(body),
-        method: 'PATCH'
+        method: "PATCH",
       }
     );
 
     const responseJson = (await response.json()) as ProductSourceResponse;
-    return responseJson.id!;
+    return responseJson.id;
   }
 
-  async getDataSetProductSource(dataSetId: number, productSourceId: number): Promise<CatalogSource> {
-    const response = await this.sendRequest(`${this.apiBase}/api/data_sets/${dataSetId}/product_sources/${productSourceId}`, this._requestConfiguration());
-    return await response.json() as CatalogSource;
+  async getDataSetProductSource(
+    dataSetId: number,
+    productSourceId: number
+  ): Promise<CatalogSource> {
+    const response = await this.sendRequest(
+      `${this.apiBase}/api/data_sets/${dataSetId}/product_sources/${productSourceId}`,
+      this._requestConfiguration()
+    );
+    return (await response.json()) as CatalogSource;
   }
 
-  async addDataSetProductSource(dataSetId: number, pluginName: string, config: object): Promise<CatalogSource> {
+  async addDataSetProductSource(
+    dataSetId: number,
+    pluginName: string,
+    config: object
+  ): Promise<CatalogSource> {
     const response = await this.sendRequest(
       `${this.apiBase}/api/data_sets/${dataSetId}/product_sources`,
       {
         ...this._requestConfiguration(),
         method: "POST",
-        body: JSON.stringify({plugin_name: pluginName, config: {configuration_args: config}})
+        body: JSON.stringify({ plugin_name: pluginName, config: { configuration_args: config } }),
       }
     );
-    return await response.json() as CatalogSource
+    return (await response.json()) as CatalogSource;
   }
-  async addDataSetIntegration(dataSetId: number, pluginName: string, config: object): Promise<CatalogSource> {
+  async addDataSetIntegration(
+    dataSetId: number,
+    pluginName: string,
+    config: object
+  ): Promise<CatalogSource> {
     const response = await this.sendRequest(
       `${this.apiBase}/api/data_sets/${dataSetId}/ecommerce_integration`,
       {
         ...this._requestConfiguration(),
         method: "POST",
-        body: JSON.stringify({plugin_name: pluginName, config: {configuration_args: config}})
+        body: JSON.stringify({ plugin_name: pluginName, config: { configuration_args: config } }),
       }
     );
-    return await response.json() as CatalogSource
+    return (await response.json()) as CatalogSource;
   }
 
   async syncDataSetIntegration(dataSetId: number): Promise<SyncResponse> {
@@ -311,71 +368,40 @@ export class DataSetsApiClient extends BaseApiClient {
       `${this.apiBase}/api/data_sets/${dataSetId}/ecommerce_integration/sync`,
       {
         ...this._requestConfiguration(),
-        method: "POST"
+        method: "POST",
       }
     );
-    return await response.json() as SyncResponse;
+    return (await response.json()) as SyncResponse;
   }
 
   async configureDataSetDocumentSource(documentSource: CatalogSource): Promise<number> {
     const body: ConfigureDocumentSourcePayload = {
       id: documentSource.id,
       plugin_name: documentSource.plugin_name,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       config: JSON.parse(documentSource.config),
-      data_set_id: documentSource.data_set_id
-    }
+      data_set_id: documentSource.data_set_id,
+    };
 
-    const response = await this.sendRequest(`${this.apiBase}/api/data_sets/${documentSource.data_set_id}/document_sources/${documentSource.id}`,
+    const response = await this.sendRequest(
+      `${this.apiBase}/api/data_sets/${documentSource.data_set_id}/document_sources/${documentSource.id}`,
       {
         ...this._requestConfiguration(),
         body: JSON.stringify(body),
-        method: 'PATCH'
+        method: "PATCH",
       }
     );
 
     const responseJson = (await response.json()) as DocumentSourceResponse;
-    return responseJson.id!;
-  }
-
-  async getDataSetDocumentSource(dataSetId: number, documentSourceId: number): Promise<CatalogSource> {
-    const response = await this.sendRequest(`${this.apiBase}/api/data_sets/${dataSetId}/document_sources/${documentSourceId}`, this._requestConfiguration());
-    return await response.json() as CatalogSource;
-  }
-
-  async addDataSetDocumentSource(dataSetId: number, pluginName: string, config: object): Promise<void> {
-    await this.sendRequest(
-      `${this.apiBase}/api/data_sets/${dataSetId}/document_sources`,
-      {
-        ...this._requestConfiguration(),
-        method: "POST",
-        body: JSON.stringify({plugin_name: pluginName, config: config})
-      }
-    );
-  }
-
-  async syncDataSetDocumentSource(dataSetId: number, pluginId: number): Promise<void> {
-    await this.sendRequest(
-      `${this.apiBase}/api/data_sets/${dataSetId}/document_sources/${pluginId}/sync`,
-      {
-        ...this._requestConfiguration(),
-        method: "POST"
-      }
-    );
-  }
-
-  async removeDataSetDocumentSource(dataSetId: number, pluginId: number): Promise<void> {
-    await this.sendRequest(
-      `${this.apiBase}/api/data_sets/${dataSetId}/document_sources/${pluginId}`,
-      {
-        ...this._requestConfiguration(),
-        method: "DELETE"
-      }
-    );
+    return responseJson.id;
   }
 
   async getDataSet(dataSetId: number): Promise<DataSet> {
-    const response = await this.sendRequest(`${this.apiBase}/api/data_sets/${dataSetId}`, this._requestConfiguration());
-    const data = await response.json();
+    const response = await this.sendRequest(
+      `${this.apiBase}/api/data_sets/${dataSetId}`,
+      this._requestConfiguration()
+    );
+    const data = (await response.json()) as DataSetResponse;
 
     return {
       id: data.id,
@@ -389,66 +415,85 @@ export class DataSetsApiClient extends BaseApiClient {
   }
 }
 
-
 export class AgentsApiClient extends BaseApiClient {
-    async getDatasetAvailableAgents(dataSetId: number): Promise<Agent[]> {
-        const query = new URLSearchParams({ dataset: dataSetId.toString() });
-        const response = await this.sendRequest(
-            `${this.apiBase}/api/agents?${query.toString()}`,
-            this._requestConfiguration()
-        );
+  async getDatasetAvailableAgents(dataSetId: number): Promise<Agent[]> {
+    const query = new URLSearchParams({ dataset: dataSetId.toString() });
+    const response = await this.sendRequest(
+      `${this.apiBase}/api/agents?${query.toString()}`,
+      this._requestConfiguration()
+    );
 
-        if (!response.ok) {
-            throw new Error(`Failed to fetch available agents: ${response.statusText}`);
-        }
+    if (!response.ok) {
+      throw new Error(`Failed to fetch available agents: ${response.statusText}`);
+    }
 
-        return await response.json() as Agent[];
-    }
-    async getAgentById(agentId: number): Promise<AgentDetails> {
-        const response = await this.sendRequest(`${this.apiBase}/api/agents/${agentId}`, this._requestConfiguration());
-        if (!response.ok) {
-            throw new Error(`Failed to fetch agent: ${response.statusText}`);
-        }
-        return await response.json() as AgentDetails;
-    }
-}
- export class AccountsApiClient extends BaseApiClient {
-  async me(): Promise<Account> {
-    const response = await this.sendRequest(`${this.apiBase}/api/account`, this._requestConfiguration());
-    return await response.json() as Account;
+    return (await response.json()) as Agent[];
   }
- }
- export class ConfigApiClient extends BaseApiClient {
+  async getAgentById(agentId: number): Promise<AgentDetails> {
+    const response = await this.sendRequest(
+      `${this.apiBase}/api/agents/${agentId}`,
+      this._requestConfiguration()
+    );
+    if (!response.ok) {
+      throw new Error(`Failed to fetch agent: ${response.statusText}`);
+    }
+    return (await response.json()) as AgentDetails;
+  }
+}
+export class AccountsApiClient extends BaseApiClient {
+  async me(): Promise<Account> {
+    const response = await this.sendRequest(
+      `${this.apiBase}/api/account`,
+      this._requestConfiguration()
+    );
+    return (await response.json()) as Account;
+  }
+}
+export class ConfigApiClient extends BaseApiClient {
   async getAvailableProviders(): Promise<ProvidersConfig> {
-    const response = await this.sendRequest(`${this.apiBase}/api/config`, this._requestConfiguration());
-    const result = await response.json() as ProvidersConfigResponse;
+    const response = await this.sendRequest(
+      `${this.apiBase}/api/config`,
+      this._requestConfiguration()
+    );
+    const result = (await response.json()) as ProvidersConfigResponse;
 
     return {
       embeddingProviders: result.embedding_providers,
-      languageModelProviders: result.language_model_providers
+      languageModelProviders: result.language_model_providers,
     };
   }
 
   async getLanguageModelsForProvider(name: string): Promise<string[]> {
-    const response = await this.sendRequest(`${this.apiBase}/api/config/language_model_providers/${name}`, this._requestConfiguration());
-    return await response.json() as string[];
+    const response = await this.sendRequest(
+      `${this.apiBase}/api/config/language_model_providers/${name}`,
+      this._requestConfiguration()
+    );
+    return (await response.json()) as string[];
   }
 
   async getEmbeddingModelsForProvider(name: string): Promise<string[]> {
-    const response = await this.sendRequest(`${this.apiBase}/api/config/embedding_providers/${name}`, this._requestConfiguration());
-    return await response.json() as string[];
+    const response = await this.sendRequest(
+      `${this.apiBase}/api/config/embedding_providers/${name}`,
+      this._requestConfiguration()
+    );
+    return (await response.json()) as string[];
   }
 
   async getAvailableProductSources(): Promise<PluginsConfig> {
-    const response = await this.sendRequest(`${this.apiBase}/api/plugins/product_source_plugins?page_size=100`, this._requestConfiguration());
-    return await response.json() as PluginsConfig;
+    const response = await this.sendRequest(
+      `${this.apiBase}/api/plugins/product_source_plugins?page_size=100`,
+      this._requestConfiguration()
+    );
+    return (await response.json()) as PluginsConfig;
   }
   async getAvailableIntegrations(): Promise<PluginsConfig> {
-    const response = await this.sendRequest(`${this.apiBase}/api/plugins/ecommerce_integration_plugins?page_size=100`, this._requestConfiguration());
-    return await response.json() as PluginsConfig;
+    const response = await this.sendRequest(
+      `${this.apiBase}/api/plugins/ecommerce_integration_plugins?page_size=100`,
+      this._requestConfiguration()
+    );
+    return (await response.json()) as PluginsConfig;
   }
 }
-
 
 export class ApiClient {
   private readonly apiBase: string;

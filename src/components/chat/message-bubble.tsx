@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react';
-import DOMPurify from 'dompurify';
-import {BaseBubble} from "../../components/chat/base-bubble";
-import {FeedbackButton} from "../../components/chat/feedback-button";
-import {CopyToClipboardButton} from "../../components/chat/copy-to-clipboard-button";
-import {MessageFeedbackForm} from "../../components/message-feedback/message-feedback-form";
-
+import { useEffect, useState } from "react";
+import DOMPurify from "dompurify";
+import { BaseBubble } from "../../components/chat/base-bubble";
+import { FeedbackButton } from "../../components/chat/feedback-button";
+import { CopyToClipboardButton } from "../../components/chat/copy-to-clipboard-button";
+import { MessageFeedbackForm } from "../../components/message-feedback/message-feedback-form";
 
 export interface MessageBubbleProps {
   text: string;
@@ -19,16 +18,16 @@ export function MessageBubble({ text, variant, questionId, inMessageGroup }: Mes
 
   useEffect(() => {
     const processText = async () => {
-      const { marked } = await import('marked');
+      const { marked } = await import("marked");
       const rawHtml = await marked(text);
       const cleanHtml = DOMPurify.sanitize(rawHtml);
       setSanitizedHtml(cleanHtml);
     };
 
-    processText();
+    void processText();
   }, [text]);
 
-  const shouldShowActionButtons = variant === 'secondary' && questionId !== null && text;
+  const shouldShowActionButtons = variant === "secondary" && questionId !== null && text;
 
   const handleFeedbackClick = () => {
     setIsFeedbackOpen((prev) => !prev);
@@ -36,10 +35,8 @@ export function MessageBubble({ text, variant, questionId, inMessageGroup }: Mes
 
   return (
     <BaseBubble variant={variant} hasBackground={true} inMessageGroup={inMessageGroup}>
-      {text && (
-        <div className={variant} dangerouslySetInnerHTML={{ __html: sanitizedHtml }}/>
-      )}
-      
+      {text && <div className={variant} dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />}
+
       {shouldShowActionButtons && (
         <div className="mt-4 flex items-center">
           <FeedbackButton isOpen={isFeedbackOpen} onClick={handleFeedbackClick} />

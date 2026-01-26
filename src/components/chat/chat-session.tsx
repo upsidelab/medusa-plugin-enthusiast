@@ -1,22 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { PlusIcon } from "lucide-react";
-
 import { MessageBubble } from "./message-bubble";
 import { AttachmentBubble } from "./attachment-bubble";
 import { MessageError } from "./message-error";
 import { MessageBubbleTyping } from "./message-bubble-typing";
 import { ChatSidebar } from "./chat-sidebar";
-import {ChatWindow} from "./chat-window";
+import { ChatWindow } from "./chat-window";
 import { adminApiClient } from "../../admin/lib/admin-client";
 import { enthusiastAdminSdk } from "../../admin/lib/sdk";
-import {AgentDetails} from "../../modules/enthusiast/api/types/agent";
-import {TaskHandle, Conversation as ConversationSchema} from "../../modules/enthusiast/api/types/conversation";
-
-import {PageHeading} from "../utils/page-heading";
-import {Button} from "../ui/button";
-import {PageMain} from "../utils/page-main";
-import {MessageFile, Message} from "../../components/chat/message-composer";
+import { AgentDetails } from "../../modules/enthusiast/api/types/agent";
+import {
+  TaskHandle,
+  Conversation as ConversationSchema,
+} from "../../modules/enthusiast/api/types/conversation";
+import { PageHeading } from "../utils/page-heading";
+import { PageMain } from "../utils/page-main";
+import { Message } from "../../components/chat/message-composer";
 
 export type FileMessageProps = {
   id: number | null;
@@ -25,11 +24,13 @@ export type FileMessageProps = {
   file_type: string;
 };
 
-export type MessageProps = {
-  type: "human" | "ai" | "system";
-  text: string;
-  id: number | null;
-} | FileMessageProps;
+export type MessageProps =
+  | {
+      type: "human" | "ai" | "system";
+      text: string;
+      id: number | null;
+    }
+  | FileMessageProps;
 
 interface ChatSessionProps {
   pendingMessage?: Message;
@@ -83,7 +84,7 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
     lastAddedMessageIdRef.current = null;
     setMessages([]);
     setConversation(null);
-    
+
     const loadMessages = async () => {
       const initChat = pendingMessage && !initialized.current;
       if (initChat) {
@@ -109,19 +110,19 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
         const streamStatus = await adminApiClient.conversations().getStreamStatus();
 
         if (streamStatus.active) {
-          streamingEnabled.current = true
+          streamingEnabled.current = true;
         } else if (!streamStatus.active) {
-          streamingEnabled.current = false
+          streamingEnabled.current = false;
         }
       } catch {
-        streamingEnabled.current = false
+        streamingEnabled.current = false;
       }
     };
     const initChat = async () => {
       await checkStream();
       await loadMessages();
-  };
-    initChat()
+    };
+    void initChat();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]);
 
@@ -135,28 +136,28 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
         const agentDetails = await adminApiClient.agents().getAgentById(agentId);
         setAgentDetails(agentDetails);
       } catch (error) {
-        console.error('Failed to load agent details:', error);
+        console.error("Failed to load agent details:", error);
       }
     };
 
-    loadAgentDetails();
+    void loadAgentDetails();
   }, [agentId, agentDetails]);
 
-  const handleSseMessage = (eventType: string, payload: any) => {
+  const handleSseMessage = (eventType: string, payload: { chunk?: unknown; output?: unknown }) => {
     const handlers: Record<string, () => void> = {
       on_parser_start: () => {
         setIsAgentLoading(true);
       },
       on_parser_stream: () => {
         const chunk = payload?.chunk;
-        
+
         if (chunk === undefined || chunk === null) {
           console.warn("Missing chunk in payload:", payload);
           return;
         }
-        
+
         const chunkStr = String(chunk);
-        
+
         setIsLoading(false);
         if (chunkStr.trim().length > 0) {
           setIsAgentLoading(false);
@@ -168,7 +169,7 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
           if (lastMessage && lastMessage.type === "ai" && lastMessage.id === null) {
             return [
               ...prevMessages.slice(0, -1),
-              { ...lastMessage, text: lastMessage.text + chunkStr }
+              { ...lastMessage, text: lastMessage.text + chunkStr },
             ];
           } else {
             return [...prevMessages, { type: "ai", text: chunkStr, id: null }];
@@ -180,12 +181,12 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
       message_id: () => {
         setMessages((prevMessages) => {
           const lastMessage = prevMessages[prevMessages.length - 1];
-          lastMessage.id = payload.output;
+          lastMessage.id = payload.output as number | null;
           return [...prevMessages.slice(0, -1), lastMessage];
         });
       },
       action: () => {
-        setAgentAction(payload.output);
+        setAgentAction((payload.output as string) || "Thinking...");
         setIsAgentLoading(true);
       },
       error: () => {
@@ -193,7 +194,7 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
         setIsAgentLoading(false);
         setMessages((prevMessages) => [
           ...prevMessages,
-          { type: "system", text: payload.output, id: null },
+          { type: "system", text: (payload.output as string) || "An error occurred", id: null },
         ]);
       },
     };
@@ -212,7 +213,9 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
         abortStreamRef.current = null;
       }
 
-      const { stream, abort } = await enthusiastAdminSdk.client.fetchStream(`/enthusiast/conversations/${conversationId}/stream`);
+      const { stream, abort } = await enthusiastAdminSdk.client.fetchStream(
+        `/enthusiast/conversations/${conversationId}/stream`
+      );
 
       if (!stream) {
         usePolling.current = true;
@@ -221,28 +224,28 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
 
       abortStreamRef.current = abort;
 
-      const processEvent = async (stream: any) => {
+      const processEvent = async (stream: AsyncIterable<{ event?: string; data?: string }>) => {
         try {
           for await (const chunk of stream) {
-            const eventType = chunk.event
-            const eventData = chunk.data
-            if (!eventType || !eventData || !eventData.length) {
+            const eventType = chunk.event;
+            const eventData = chunk.data;
+            if (!eventType || !eventData || eventData.length === 0) {
               continue;
-              }
-            const dataObj = JSON.parse(chunk.data)
+            }
+            const dataObj = JSON.parse(eventData) as { chunk?: unknown; output?: unknown };
 
             handleSseMessage(eventType, dataObj);
           }
         } catch (error) {
           if (error instanceof Error && error.name !== "AbortError") {
             console.error("SSE stream error:", error);
-          usePolling.current = true;
+            usePolling.current = true;
           }
         } finally {
           abortStreamRef.current = null;
         }
       };
-        await processEvent(stream);
+      await processEvent(stream);
 
       return true;
     } catch (error) {
@@ -252,7 +255,11 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
     }
   };
 
-  const updateTaskStatus = async (conversationId: number, taskHandle: TaskHandle, streaming: boolean) => {
+  const updateTaskStatus = async (
+    conversationId: number,
+    taskHandle: TaskHandle,
+    streaming: boolean
+  ) => {
     if (streaming) {
       return;
     }
@@ -262,7 +269,9 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
     }
 
     try {
-      const response = await adminApiClient.conversations().fetchResponseMessage(conversationId!, taskHandle);
+      const response = await adminApiClient
+        .conversations()
+        .fetchResponseMessage(conversationId, taskHandle);
 
       if (response) {
         if (response.id && response.id === lastAddedMessageIdRef.current) {
@@ -273,27 +282,24 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
 
         setIsAgentLoading(false);
         setMessages((prev) => {
-          const messageExists = prev.some(
-            msg => msg.type === "ai" && msg.id === response.id
-          );
-          
+          const messageExists = prev.some((msg) => msg.type === "ai" && msg.id === response.id);
+
           if (messageExists) {
             return prev;
           }
-          
-          return [
-            ...prev,
-            { type: "ai", text: response.text, id: response.id }
-          ];
+
+          return [...prev, { type: "ai", text: response.text, id: response.id }];
         });
-        
+
         if (response.id) {
           lastAddedMessageIdRef.current = response.id;
         }
         setIsLoading(false);
         scrollToLastMessage();
       } else {
-        setTimeout(() => updateTaskStatus(conversationId, taskHandle, streaming), 2000);
+        setTimeout(() => {
+          void updateTaskStatus(conversationId, taskHandle, streaming);
+        }, 2000);
       }
     } catch {
       setIsLoading(false);
@@ -301,44 +307,25 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
     }
   };
 
-  const addFileMessages = (files: MessageFile[]) => {
-    const fileMessages = files.map<FileMessageProps>(file => ({
-      id: null,
-      type: "file",
-      file_name: file.name,
-      file_type: file.type
-    }));
-
-    setMessages((prev) => [ ...prev, ...fileMessages ]);
-  }
-
-  const addUserMessage = (message: string) => {
-    setMessages((prev) => [
-      ...prev,
-      { type: "human", text: message, id: null }
-    ]);
-    scrollToLastMessage();
-  };
-
   const onMessageComposerSubmit = async (message: Message) => {
     setIsLoading(true);
     setIsAgentLoading(true);
     setMessages((prev) => {
       const messageExists = prev.some(
-        msg => msg.type === "human" && msg.text === message.text && msg.id === null
+        (msg) => msg.type === "human" && msg.text === message.text && msg.id === null
       );
-      
+
       if (!messageExists) {
-        const fileMessages = message.files.map<FileMessageProps>(file => ({
+        const fileMessages = message.files.map<FileMessageProps>((file) => ({
           id: null,
           type: "file",
           file_name: file.name,
-          file_type: file.type
+          file_type: file.type,
         }));
         return [
           ...prev,
           ...fileMessages,
-          { type: "human", text: message.text, id: null } as MessageProps
+          { type: "human", text: message.text, id: null } as MessageProps,
         ];
       }
       return prev;
@@ -346,14 +333,23 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
 
     scrollToLastMessage(100);
 
-    const taskHandle = await adminApiClient.conversations().sendMessage(conversationId, dataSetId!, message.text, streamingEnabled.current, message.files.map(f => f.id));
+    const taskHandle = await adminApiClient.conversations().sendMessage(
+      conversationId,
+      dataSetId,
+      message.text,
+      streamingEnabled.current,
+      message.files.map((f) => f.id)
+    );
     currentTaskHandleRef.current = taskHandle;
     usePolling.current = !taskHandle.streaming;
 
     if (pendingMessage && message.text === pendingMessage.text) {
-      navigate(`/enthusiast/dataset/${dataSetId}/chat/${conversationId}`, { replace: true, state: {} });
+      navigate(`/enthusiast/dataset/${dataSetId}/chat/${conversationId}`, {
+        replace: true,
+        state: {},
+      });
     }
-    
+
     if (taskHandle.streaming) {
       const connected = await createSseConnection(conversationId);
       if (!connected) {
@@ -362,7 +358,7 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
     }
 
     try {
-      updateTaskStatus(conversationId, taskHandle, !usePolling);
+      void updateTaskStatus(conversationId, taskHandle, !usePolling);
     } catch {
       setIsLoading(false);
       setIsAgentLoading(false);
@@ -377,17 +373,18 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
     <div className="flex h-screen overflow-hidden">
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden px-1 py-2">
         <PageMain className="h-full">
-          {conversation &&
+          {conversation && (
             <>
               <PageHeading
-                  title={agentDetails?.name || ""}
-                  description={agentDetails?.description}
-                  className="flex-shrink-0 bg-background z-[1] px-8"
-              >
-              </PageHeading>
+                title={agentDetails?.name || ""}
+                description={agentDetails?.description}
+                className="flex-shrink-0 bg-background z-[1] px-8"
+              ></PageHeading>
               <ChatWindow
                 className="flex-1 min-h-0"
-                onSubmit={onMessageComposerSubmit}
+                onSubmit={(message) => {
+                  void onMessageComposerSubmit(message);
+                }}
                 isLoading={isLoading}
                 conversationLocked={isAgentDeleted || isAgentCorrupted}
                 conversationId={conversationId}
@@ -396,22 +393,26 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
               >
                 <div className="grow flex-1 space-y-4">
                   {messages.map((message, index) => {
-                    const inMessageGroup = isUserMessage(message) && index > 0 && isUserMessage(messages[index - 1]);
+                    const inMessageGroup =
+                      isUserMessage(message) && index > 0 && isUserMessage(messages[index - 1]);
 
                     if (message.type === "system") {
-                      return (
-                        <MessageError key={index} text={message.text} />
-                      );
+                      return <MessageError key={index} text={message.text} />;
                     }
 
                     if (message.type === "file") {
                       return (
-                        <AttachmentBubble key={index} variant="primary" message={message} inMessageGroup={inMessageGroup} />
+                        <AttachmentBubble
+                          key={index}
+                          variant="primary"
+                          message={message}
+                          inMessageGroup={inMessageGroup}
+                        />
                       );
                     }
 
-                    if (message.type === 'ai' && message.text === '') {
-                      return (<MessageBubbleTyping key={index} text={agentAction} />);
+                    if (message.type === "ai" && message.text === "") {
+                      return <MessageBubbleTyping key={index} text={agentAction} />;
                     }
 
                     return (
@@ -424,13 +425,16 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
                       />
                     );
                   })}
-                  {isAgentLoading && !messages.some(msg => msg.type === 'ai' && msg.text === '') && <MessageBubbleTyping text={agentAction} />}
+                  {isAgentLoading &&
+                    !messages.some((msg) => msg.type === "ai" && msg.text === "") && (
+                      <MessageBubbleTyping text={agentAction} />
+                    )}
                   <div className="mb-4" />
                   <div ref={lastMessageRef} />
                 </div>
               </ChatWindow>
             </>
-          }
+          )}
         </PageMain>
       </div>
       <ChatSidebar currentAgentId={agentId!} currentConversationId={conversationId} />
