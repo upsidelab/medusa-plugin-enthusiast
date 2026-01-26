@@ -45,8 +45,8 @@
     "@typescript-eslint/no-unsafe-return": "off",
     "@typescript-eslint/no-misused-promises": "warn",
     "prefer-rest-params": "off",
-    "react-hooks/rules-of-hooks": "off",
-    "@typescript-eslint/no-unsafe-argument": "off",
+    "react-hooks/rules-of-hooks": "error",
+    "@typescript-eslint/no-unsafe-argument": "warn",
     "@typescript-eslint/ban-ts-comment": "off",
     "react-hooks/exhaustive-deps": "warn",
     "jsx-a11y/anchor-is-valid": "warn"

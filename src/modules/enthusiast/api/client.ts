@@ -58,7 +58,7 @@ export abstract class BaseApiClient {
       if (!errorObj || typeof errorObj !== "object") {
         return "Unknown error";
       }
-      const firstEntry = Object.entries(errorObj)[0] as [string, any] | undefined;
+      const firstEntry = Object.entries(errorObj as { [s: string]: unknown })[0] as [string, any] | undefined;
 
       if (!firstEntry) return "Unknown error";
 

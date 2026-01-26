@@ -20,13 +20,6 @@ export function NewChat({ onPendingMessage }: NewChatProps) {
 
   const queryParams = new URLSearchParams(location.search);
   const agent = queryParams.get("agent");
-  if (!agent) {
-    toast.info("No agent.", {
-      description: "Choose an agent to start a chat.",
-    });
-
-    return <Navigate to="/enthusiast" replace />;
-  }
   const agentId = agent ? parseInt(agent, 10) : null;
   const datasetId = dataset ? parseInt(dataset, 10) : null;
 
@@ -45,9 +38,12 @@ export function NewChat({ onPendingMessage }: NewChatProps) {
       }
     };
     const fetchAgentDetails = async () => {
+      if (!agentId) {
+        return
+      }
       try {
         setIsLoading(true);
-        const res = await adminApiClient.agents().getAgentById(agentId!);
+        const res = await adminApiClient.agents().getAgentById(agentId);
         setAgentDetails(res);
       } finally {
         setIsLoading(false);
@@ -57,6 +53,13 @@ export function NewChat({ onPendingMessage }: NewChatProps) {
     void fetchAgentDetails();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataset]);
+  if (!agent) {
+    toast.info("No agent.", {
+      description: "Choose an agent to start a chat.",
+    });
+
+    return <Navigate to="/enthusiast" replace />;
+  }
   const selectedAgent = agentId ? agents.find((agentObj) => agentObj.id === agentId) : null;
 
   const emptyState = (() => {
