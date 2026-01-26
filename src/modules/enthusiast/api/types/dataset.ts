@@ -15,6 +15,7 @@ export type CreateDataSetPayload = {
   embedding_provider: string;
   embedding_model: string;
   embedding_vector_dimensions: number;
+  preconfigure_agents: boolean;
 };
 export type UpdateDataSetPayload = {
   id: number | undefined;

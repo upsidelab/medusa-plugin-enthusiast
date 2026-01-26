@@ -39,6 +39,7 @@ export const DatasetCreateForm = ({
     embedding_provider: "",
     embedding_model: "",
     embedding_vector_dimensions: 512,
+    preconfigure_agents: true
   };
 
   const form = useForm<zod.infer<typeof PostCreateDatasetSchema>>({ defaultValues });

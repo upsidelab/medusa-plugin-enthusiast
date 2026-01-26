@@ -7,4 +7,5 @@ export const PostCreateDatasetSchema = z.object({
   embedding_provider: z.string(),
   embedding_model: z.string(),
   embedding_vector_dimensions: z.number(),
+  preconfigure_agents: z.boolean(),
 });
