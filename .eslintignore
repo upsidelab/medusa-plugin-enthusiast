@@ -1,0 +1,8 @@
+node_modules
+.medusa
+dist
+build
+*.config.js
+*.config.ts
+package-lock.json
+yarn.lock
