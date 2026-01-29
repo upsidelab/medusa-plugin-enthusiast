@@ -133,9 +133,9 @@ export const DatasetTable = () => {
 
   return (
     <Container>
-      <div>
+      <div className="flex flex-col min-h-0">
         <DataTable instance={table}>
-          <DataTable.Toolbar className="flex flex-col items-start justify-between gap-2 md:flex-row md:items-center">
+          <DataTable.Toolbar className="flex flex-col items-start justify-between gap-2 md:flex-row md:items-center flex-shrink-0">
             <div className="flex flex-col">
               <Heading>Data Sets</Heading>
               <Text className="text-ui-fg-subtle" size="small">
@@ -149,14 +149,22 @@ export const DatasetTable = () => {
               defaultOpen={!isLoading && datasets.length === 0}
             />
           </DataTable.Toolbar>
-          <DataTable.Table
-            emptyState={{
-              empty: {
-                heading: "No Datasets",
-                description: "There is no datasets available.",
-              },
+          <div
+            className="flex-1 overflow-auto min-h-0 max-h-[calc(100vh-16rem)]"
+            onWheel={(e) => {
+              const container = e.currentTarget;
+              container.scrollTop += e.deltaY;
             }}
-          />
+          >
+            <DataTable.Table
+              emptyState={{
+                empty: {
+                  heading: "No Datasets",
+                  description: "There is no datasets available.",
+                },
+              }}
+            />
+          </div>
         </DataTable>
       </div>
     </Container>

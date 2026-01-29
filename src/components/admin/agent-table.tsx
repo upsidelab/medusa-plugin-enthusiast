@@ -152,28 +152,38 @@ export const AgentTable = () => {
   }
   return (
     <Container className="p-4">
-      <DataTable instance={table}>
-        <DataTable.Toolbar className="flex flex-col items-start justify-between gap-2 md:flex-row md:items-center">
-          <div>
-            <Heading>Agents</Heading>
-            <Text className="text-ui-fg-subtle" size="small">
-              Choose an agent to start a session
-            </Text>
+      <div className="flex flex-col min-h-0">
+        <DataTable instance={table}>
+          <DataTable.Toolbar className="flex flex-col items-start justify-between gap-2 md:flex-row md:items-center flex-shrink-0">
+            <div>
+              <Heading>Agents</Heading>
+              <Text className="text-ui-fg-subtle" size="small">
+                Choose an agent to start a session
+              </Text>
+            </div>
+            <Button variant="secondary" onClick={() => navigate("/enthusiast/settings")}>
+              <CogSixTooth />
+              Settings
+            </Button>
+          </DataTable.Toolbar>
+          <div
+            className="overflow-auto min-h-0 max-h-[calc(100vh-16rem)]"
+            onWheel={(e) => {
+              const container = e.currentTarget;
+              container.scrollTop += e.deltaY;
+            }}
+          >
+            <DataTable.Table
+              emptyState={{
+                empty: {
+                  heading: "No agents available",
+                  description: "You can configure available agents in Enthusiast's admin panel",
+                },
+              }}
+            />
           </div>
-          <Button variant="secondary" onClick={() => navigate("/enthusiast/settings")}>
-            <CogSixTooth />
-            Settings
-          </Button>
-        </DataTable.Toolbar>
-        <DataTable.Table
-          emptyState={{
-            empty: {
-              heading: "No agents available",
-              description: "You can configure available agents in Enthusiast's admin panel",
-            },
-          }}
-        />
-      </DataTable>
+        </DataTable>
+      </div>
     </Container>
   );
 };
