@@ -21,8 +21,9 @@ import { getFullDate } from "../../admin/lib/utils";
 
 export const DatasetTable = () => {
   const [datasets, setDatasets] = useState<EnthusiastDatasetType[]>([]);
-  const [refetch, setRefetch] = useState<boolean>(false);
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const triggerTableRefetch = () => setRefetchTrigger((c) => c + 1);
 
   useEffect(() => {
     const fetchDataset = async () => {
@@ -32,11 +33,10 @@ export const DatasetTable = () => {
         setDatasets(res);
       } finally {
         setIsLoading(false);
-        setRefetch(false);
       }
     };
     void fetchDataset();
-  }, [refetch]);
+  }, [refetchTrigger]);
 
   const columnHelper = createDataTableColumnHelper<EnthusiastDatasetType>();
 
@@ -59,10 +59,11 @@ export const DatasetTable = () => {
           <RadioGroup
             onValueChange={() => {
               void (async () => {
-                setIsLoading(true);
-                await adminApiClient.dataSets().setAsActive(row.original.id);
-                setRefetch(true);
-                setIsLoading(false);
+                try {
+                  await adminApiClient.dataSets().setAsActive(row.original.id);
+                } finally {
+                  triggerTableRefetch();
+                }
               })();
             }}
           >
@@ -94,7 +95,7 @@ export const DatasetTable = () => {
                 onClick={() => {
                   void (async () => {
                     await adminApiClient.dataSets().synchronizeDatasets(row.original.id);
-                    setRefetch(true);
+                    triggerTableRefetch();
                   })();
                 }}
               >
@@ -143,7 +144,7 @@ export const DatasetTable = () => {
               </Text>
             </div>
             <DatasetCreateForm
-              setRefetch={setRefetch}
+              setRefetch={triggerTableRefetch}
               anyActive={datasets.some((dataset) => dataset.is_active)}
               isFirst={!datasets.length}
               defaultOpen={!isLoading && datasets.length === 0}
