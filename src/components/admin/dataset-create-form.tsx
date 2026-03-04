@@ -14,7 +14,7 @@ import {
 import { cn } from "../../admin/lib/utils";
 
 type DatasetCreateFormProps = {
-  setRefetch?: () => void;
+  setRefetch?: () => Promise<void>;
   anyActive: boolean;
   isFirst: boolean;
   defaultOpen?: boolean;

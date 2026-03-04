@@ -10,33 +10,27 @@ import {
   Tooltip,
   useDataTable,
 } from "@medusajs/ui";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { adminApiClient } from "../../admin/lib/admin-client";
 import { EnthusiastDatasetType } from "../../admin/lib/types";
 import { ColumnHeaderWithTooltip } from "../../components/admin/column-with-tooltip";
 import { ArrowPath } from "@medusajs/icons";
 import { DatasetCreateForm } from "../../components/admin/dataset-create-form";
-import { LoadingSpinner } from "../../components/utils/spinner";
 import { getFullDate } from "../../admin/lib/utils";
 
 export const DatasetTable = () => {
   const [datasets, setDatasets] = useState<EnthusiastDatasetType[]>([]);
-  const [refetchTrigger, setRefetchTrigger] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const triggerTableRefetch = () => setRefetchTrigger((c) => c + 1);
+  const [hasLoaded, setHasLoaded] = useState(false);
+
+  const fetchDatasets = useCallback(async () => {
+    const res = await adminApiClient.dataSets().getInternalDataSets();
+    setDatasets(res);
+    setHasLoaded(true);
+  }, []);
 
   useEffect(() => {
-    const fetchDataset = async () => {
-      try {
-        setIsLoading(true);
-        const res = await adminApiClient.dataSets().getInternalDataSets();
-        setDatasets(res);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    void fetchDataset();
-  }, [refetchTrigger]);
+    void fetchDatasets();
+  }, [fetchDatasets]);
 
   const columnHelper = createDataTableColumnHelper<EnthusiastDatasetType>();
 
@@ -57,12 +51,19 @@ export const DatasetTable = () => {
         const isChecked = getValue();
         return (
           <RadioGroup
+            value={isChecked ? row.original.id : ""}
             onValueChange={() => {
               void (async () => {
                 try {
                   await adminApiClient.dataSets().setAsActive(row.original.id);
+                  setDatasets((prev) =>
+                    prev.map((dataset) => ({
+                      ...dataset,
+                      is_active: dataset.id === row.original.id,
+                    }))
+                  );
                 } finally {
-                  triggerTableRefetch();
+                  void fetchDatasets();
                 }
               })();
             }}
@@ -95,7 +96,7 @@ export const DatasetTable = () => {
                 onClick={() => {
                   void (async () => {
                     await adminApiClient.dataSets().synchronizeDatasets(row.original.id);
-                    triggerTableRefetch();
+                    void fetchDatasets();
                   })();
                 }}
               >
@@ -123,14 +124,10 @@ export const DatasetTable = () => {
   ];
   const table = useDataTable({
     columns,
-    data: datasets || [],
+    data: datasets,
     getRowId: (row) => row.id,
     rowCount: datasets.length,
   });
-
-  if (isLoading) {
-    return <LoadingSpinner />;
-  }
 
   return (
     <Container>
@@ -144,10 +141,10 @@ export const DatasetTable = () => {
               </Text>
             </div>
             <DatasetCreateForm
-              setRefetch={triggerTableRefetch}
+              setRefetch={fetchDatasets}
               anyActive={datasets.some((dataset) => dataset.is_active)}
               isFirst={!datasets.length}
-              defaultOpen={!isLoading && datasets.length === 0}
+              defaultOpen={hasLoaded && datasets.length === 0}
             />
           </DataTable.Toolbar>
           <div
