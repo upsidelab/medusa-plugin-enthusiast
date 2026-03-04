@@ -14,7 +14,7 @@ import {
 import { cn } from "../../admin/lib/utils";
 
 type DatasetCreateFormProps = {
-  setRefetch?: React.Dispatch<React.SetStateAction<boolean>>;
+  setRefetch?: () => Promise<void>;
   anyActive: boolean;
   isFirst: boolean;
   defaultOpen?: boolean;
@@ -110,7 +110,7 @@ export const DatasetCreateForm = ({
     }
 
     if (setRefetch) {
-      setRefetch(true);
+      setRefetch();
     }
     form.reset();
     setFormOpen(false);
