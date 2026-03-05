@@ -130,6 +130,19 @@ export function ChatSession({ datasetId: dataSetId }: ChatSessionProps) {
     const loadMessages = async () => {
       const conv = await adminApiClient.conversations().getConversation(conversationId!);
 
+      // Guard: only allow access to conversations that belong to the active dataset.
+      // The sidebar already filters by dataset, but a user could manually type a URL
+      // with a conversation ID from a different dataset. This is a frontend-only check, since
+      // Enthusiast itself does not restrict access to conversations besides the active dataset.
+      if (String(conv.agent.dataset) !== String(dataSetId)) {
+        toast.error("Conversation not found.", {
+          description: "This conversation does not belong to the active dataset.",
+          position: 'top-right'
+        });
+        navigate("/enthusiast", { replace: true });
+        return;
+      }
+
       setConversation(conv);
       setAgentId(conv.agent?.id);
 
@@ -293,11 +306,7 @@ export function ChatSession({ datasetId: dataSetId }: ChatSessionProps) {
     }
   };
 
-  const updateTaskStatus = async (
-    convId: number,
-    taskHandle: TaskHandle,
-    streaming: boolean
-  ) => {
+  const updateTaskStatus = async (convId: number, taskHandle: TaskHandle, streaming: boolean) => {
     if (streaming) {
       return;
     }
@@ -407,9 +416,7 @@ export function ChatSession({ datasetId: dataSetId }: ChatSessionProps) {
 
   const onSubmitNewChat: OnSubmit = (message) => {
     void (async () => {
-      const newConversationId = await adminApiClient
-        .conversations()
-        .createConversation(agentId!);
+      const newConversationId = await adminApiClient.conversations().createConversation(agentId!);
       navigate(`/enthusiast/chat/${newConversationId}`, {
         state: { pendingMessage: message },
         replace: true,
@@ -482,9 +489,7 @@ export function ChatSession({ datasetId: dataSetId }: ChatSessionProps) {
                   <div className="grow flex-1 space-y-4">
                     {messages.map((message, index) => {
                       const inMessageGroup =
-                        isUserMessage(message) &&
-                        index > 0 &&
-                        isUserMessage(messages[index - 1]);
+                        isUserMessage(message) && index > 0 && isUserMessage(messages[index - 1]);
 
                       if (message.type === "system") {
                         return <MessageError key={index} text={message.text} />;

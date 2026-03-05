@@ -24,9 +24,6 @@ export type Message = {
 export type Conversation = {
   id: number;
   started_at: Date;
-  model: string;
-  dimensions: number;
-  data_set: string;
   summary?: string;
   agent: Agent;
   history?: Message[];
