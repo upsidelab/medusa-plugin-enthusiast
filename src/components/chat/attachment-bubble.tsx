@@ -1,7 +1,7 @@
 import { BaseBubble } from "./base-bubble";
 import { FileText, Image, File } from "lucide-react";
 
-import type { FileMessageProps } from "./chat-session";
+import type { FileMessageProps } from "./types";
 
 interface AttachmentBubbleProps {
   variant: "primary" | "secondary";
