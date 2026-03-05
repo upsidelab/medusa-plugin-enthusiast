@@ -6,6 +6,7 @@ export type Agent = {
   updated_at: string;
   deleted_at: string;
   corrupted: boolean;
+  dataset: number;
 };
 
 export type Account = {

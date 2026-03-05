@@ -37,7 +37,7 @@ const columns = (navigate: (path: string) => void) => [
             variant="secondary"
             onClick={(e) => {
               e.stopPropagation();
-              navigate(`/enthusiast/chat?agent=${row.original.id}`);
+              navigate(`/enthusiast/chat/new?agent=${row.original.id}`);
             }}
           >
             <ChatBubble />
@@ -89,7 +89,7 @@ export const AgentTable = () => {
     getRowId: (row) => row.id.toString(),
     rowCount: agents.length,
     onRowClick(event, row) {
-      navigate(`/enthusiast/chat?agent=${row.id}`);
+      navigate(`/enthusiast/chat/new?agent=${row.id}`);
     },
   });
   if (isLoading) {

@@ -20,36 +20,47 @@ export function ChatSidebar({ currentAgentId, currentConversationId }: ChatSideb
 
   const [agents, setAgents] = useState<Agent[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isAgentsLoading, setIsAgentsLoading] = useState(true);
 
+  // Load agents only when the active dataset changes
   useEffect(() => {
-    const loadData = async () => {
-      if (isDatasetLoading || !dataSetId) return;
+    if (isDatasetLoading || !dataSetId) return;
 
+    const loadAgents = async () => {
       try {
-        setIsLoading(true);
-
+        setIsAgentsLoading(true);
         const agentsRes = await adminApiClient.agents().getDatasetAgents(dataSetId);
-        const availableAgents = agentsRes.filter((agent) => !agent.corrupted);
-        setAgents(availableAgents);
-
-        const conversationsRes = await adminApiClient
-          .conversations()
-          .getConversations(dataSetId, currentAgentId, 1);
-        const conversationArray = conversationsRes.results || [];
-        setConversations(conversationArray);
+        setAgents(agentsRes.filter((agent) => !agent.corrupted));
       } catch (error) {
-        console.error("Failed to load sidebar data:", error);
+        console.error("Failed to load agents:", error);
       } finally {
-        setIsLoading(false);
+        setIsAgentsLoading(false);
       }
     };
 
-    void loadData();
-  }, [dataSetId, isDatasetLoading, currentAgentId, currentConversationId]);
+    void loadAgents();
+  }, [dataSetId, isDatasetLoading]);
+
+  // Reload conversations when the agent or active conversation changes (background, no spinner)
+  useEffect(() => {
+    if (!dataSetId || !currentAgentId) return;
+
+    const loadConversations = async () => {
+      try {
+        const conversationsRes = await adminApiClient
+          .conversations()
+          .getConversations(dataSetId, currentAgentId, 1);
+        setConversations(conversationsRes.results || []);
+      } catch (error) {
+        console.error("Failed to load conversations:", error);
+      }
+    };
+
+    void loadConversations();
+  }, [dataSetId, currentAgentId, currentConversationId]);
 
   const handleAgentClick = (agentId: number) => {
-    navigate(`/enthusiast/chat?agent=${encodeURIComponent(agentId)}`);
+    navigate(`/enthusiast/chat/new?agent=${encodeURIComponent(agentId)}`);
   };
 
   const handleConversationClick = (conversationId: number) => {
@@ -57,10 +68,10 @@ export function ChatSidebar({ currentAgentId, currentConversationId }: ChatSideb
   };
 
   const handleNewChat = () => {
-    navigate(`/enthusiast/chat?agent=${encodeURIComponent(currentAgentId)}`);
+    navigate(`/enthusiast/chat/new?agent=${encodeURIComponent(currentAgentId)}`);
   };
 
-  if (isLoading) {
+  if (isAgentsLoading) {
     return <LoadingSpinner />;
   }
 

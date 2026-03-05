@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams, useLocation } from "react-router-dom";
+import { toast } from "@medusajs/ui";
+import { Spinner } from "@medusajs/icons";
 import { MessageBubble } from "./message-bubble";
 import { AttachmentBubble } from "./attachment-bubble";
 import { MessageError } from "./message-error";
@@ -15,7 +17,7 @@ import {
 } from "../../modules/enthusiast/api/types/conversation";
 import { PageHeading } from "../utils/page-heading";
 import { PageMain } from "../utils/page-main";
-import { Message } from "../../components/chat/message-composer";
+import { Message, OnSubmit } from "../../components/chat/message-composer";
 
 export type FileMessageProps = {
   id: number | null;
@@ -34,28 +36,44 @@ export type MessageProps =
 
 interface ChatSessionProps {
   datasetId: number;
-  pendingMessage?: Message;
 }
 
-export function ChatSession({ datasetId: dataSetId, pendingMessage }: ChatSessionProps) {
+const ContentSpinner = () => (
+  <div className="flex flex-1 items-center justify-center">
+    <Spinner className="text-ui-fg-interactive animate-spin" />
+  </div>
+);
+
+export function ChatSession({ datasetId: dataSetId }: ChatSessionProps) {
   const { chatId } = useParams();
-  const conversationId = parseInt(chatId as string, 10);
+  const location = useLocation();
   const navigate = useNavigate();
 
+  const isNew = chatId === "new";
+  const conversationId = !isNew && chatId ? parseInt(chatId, 10) : undefined;
+
+  const queryParams = new URLSearchParams(location.search);
+  const agentIdFromUrl = queryParams.get("agent")
+    ? parseInt(queryParams.get("agent")!, 10)
+    : undefined;
+
+  const locationState = location.state as { pendingMessage?: Message } | null;
+  const pendingMessage = locationState?.pendingMessage;
+
   const [conversation, setConversation] = useState<ConversationSchema | null>(null);
+  const [isContentLoading, setIsContentLoading] = useState(!isNew);
   const [isLoading, setIsLoading] = useState(false);
   const [isAgentLoading, setIsAgentLoading] = useState(false);
   const [agentAction, setAgentAction] = useState<string>("Thinking...");
   const [messages, setMessages] = useState<MessageProps[]>([]);
-  const [agentId, setAgentId] = useState<number | undefined>();
-  const [agentDetails, setAgentDetails] = useState<AgentDetails>();
+  const [agentId, setAgentId] = useState<number | undefined>(agentIdFromUrl);
+  const [agentDetails, setAgentDetails] = useState<AgentDetails | undefined>();
+
   const usePolling = useRef<boolean>(true);
   const streamingEnabled = useRef<boolean>(false);
-
   const initialized = useRef(false);
   const currentTaskHandleRef = useRef<TaskHandle | null>(null);
   const lastAddedMessageIdRef = useRef<number | null>(null);
-
   const lastMessageRef = useRef<HTMLDivElement | null>(null);
   const abortStreamRef = useRef<(() => void) | null>(null);
 
@@ -78,65 +96,86 @@ export function ChatSession({ datasetId: dataSetId, pendingMessage }: ChatSessio
     };
   }, []);
 
+  // Reset and load when chatId changes
   useEffect(() => {
+    if (abortStreamRef.current) {
+      abortStreamRef.current();
+      abortStreamRef.current = null;
+    }
+
     initialized.current = false;
     currentTaskHandleRef.current = null;
     lastAddedMessageIdRef.current = null;
     setMessages([]);
     setConversation(null);
+    setAgentDetails(undefined);
 
-    const loadMessages = async () => {
-      const initChat = pendingMessage && !initialized.current;
-      if (initChat) {
-        initialized.current = true;
-        await onMessageComposerSubmit(pendingMessage);
-      }
+    if (isNew) {
+      setAgentId(agentIdFromUrl);
+      setIsContentLoading(false);
+      return;
+    }
 
-      const conversation = await adminApiClient.conversations().getConversation(conversationId);
-      setConversation(conversation);
-      setAgentId(conversation.agent?.id);
+    setIsContentLoading(true);
 
-      if (pendingMessage) {
-        return;
-      }
-
-      const initialMessages = conversation.history as MessageProps[];
-      setMessages(initialMessages);
-
-      scrollToLastMessage(100);
-    };
     const checkStream = async () => {
       try {
         const streamStatus = await adminApiClient.conversations().getStreamStatus();
-
-        if (streamStatus.active) {
-          streamingEnabled.current = true;
-        } else if (!streamStatus.active) {
-          streamingEnabled.current = false;
-        }
+        streamingEnabled.current = streamStatus.active;
       } catch {
         streamingEnabled.current = false;
       }
     };
-    const initChat = async () => {
-      await checkStream();
-      await loadMessages();
-    };
-    void initChat();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversationId]);
 
-  useEffect(() => {
-    const loadAgentDetails = async () => {
-      if (!agentId || agentDetails) {
+    const loadMessages = async () => {
+      const conv = await adminApiClient.conversations().getConversation(conversationId!);
+
+      setConversation(conv);
+      setAgentId(conv.agent?.id);
+
+      if (pendingMessage && !initialized.current) {
+        initialized.current = true;
+        setIsContentLoading(false);
+        // Send the pending message in the background — do NOT await it here,
+        // as createSseConnection blocks until the entire stream completes.
+        void onMessageComposerSubmit(pendingMessage);
         return;
       }
 
+      const initialMessages = conv.history as MessageProps[];
+      setMessages(initialMessages);
+      setIsContentLoading(false);
+      scrollToLastMessage(100);
+    };
+
+    void (async () => {
+      await checkStream();
+      await loadMessages();
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatId]);
+
+  // When switching agents on the 'new' chat, only the query param changes (chatId stays 'new')
+  // so the main chatId effect won't fire — update agentId explicitly here
+  useEffect(() => {
+    if (!isNew || agentIdFromUrl === undefined) return;
+    setAgentId(agentIdFromUrl);
+    setAgentDetails(undefined);
+    setIsContentLoading(true);
+  }, [isNew, agentIdFromUrl]);
+
+  // Load agent details when agentId becomes available or changes
+  useEffect(() => {
+    if (!agentId || agentDetails) return;
+
+    const loadAgentDetails = async () => {
       try {
-        const agentDetails = await adminApiClient.agents().getAgentById(agentId);
-        setAgentDetails(agentDetails);
+        const details = await adminApiClient.agents().getAgentById(agentId);
+        setAgentDetails(details);
       } catch (error) {
         console.error("Failed to load agent details:", error);
+      } finally {
+        if (isNew) setIsContentLoading(false);
       }
     };
 
@@ -205,16 +244,15 @@ export function ChatSession({ datasetId: dataSetId, pendingMessage }: ChatSessio
     }
   };
 
-  const createSseConnection = async (conversationId: number): Promise<boolean> => {
+  const createSseConnection = async (convId: number): Promise<boolean> => {
     try {
-      // Close existing stream if any
       if (abortStreamRef.current) {
         abortStreamRef.current();
         abortStreamRef.current = null;
       }
 
       const { stream, abort } = await enthusiastAdminSdk.client.fetchStream(
-        `/enthusiast/conversations/${conversationId}/stream`
+        `/enthusiast/conversations/${convId}/stream`
       );
 
       if (!stream) {
@@ -256,7 +294,7 @@ export function ChatSession({ datasetId: dataSetId, pendingMessage }: ChatSessio
   };
 
   const updateTaskStatus = async (
-    conversationId: number,
+    convId: number,
     taskHandle: TaskHandle,
     streaming: boolean
   ) => {
@@ -271,7 +309,7 @@ export function ChatSession({ datasetId: dataSetId, pendingMessage }: ChatSessio
     try {
       const response = await adminApiClient
         .conversations()
-        .fetchResponseMessage(conversationId, taskHandle);
+        .fetchResponseMessage(convId, taskHandle);
 
       if (response) {
         if (response.id && response.id === lastAddedMessageIdRef.current) {
@@ -298,7 +336,7 @@ export function ChatSession({ datasetId: dataSetId, pendingMessage }: ChatSessio
         scrollToLastMessage();
       } else {
         setTimeout(() => {
-          void updateTaskStatus(conversationId, taskHandle, streaming);
+          void updateTaskStatus(convId, taskHandle, streaming);
         }, 2000);
       }
     } catch {
@@ -308,6 +346,8 @@ export function ChatSession({ datasetId: dataSetId, pendingMessage }: ChatSessio
   };
 
   const onMessageComposerSubmit = async (message: Message) => {
+    const convId = conversationId!;
+
     setIsLoading(true);
     setIsAgentLoading(true);
     setMessages((prev) => {
@@ -334,7 +374,7 @@ export function ChatSession({ datasetId: dataSetId, pendingMessage }: ChatSessio
     scrollToLastMessage(100);
 
     const taskHandle = await adminApiClient.conversations().sendMessage(
-      conversationId,
+      convId,
       dataSetId,
       message.text,
       streamingEnabled.current,
@@ -344,96 +384,147 @@ export function ChatSession({ datasetId: dataSetId, pendingMessage }: ChatSessio
     usePolling.current = !taskHandle.streaming;
 
     if (pendingMessage && message.text === pendingMessage.text) {
-      navigate(`/enthusiast/chat/${conversationId}`, {
+      navigate(`/enthusiast/chat/${convId}`, {
         replace: true,
         state: {},
       });
     }
 
     if (taskHandle.streaming) {
-      const connected = await createSseConnection(conversationId);
+      const connected = await createSseConnection(convId);
       if (!connected) {
         usePolling.current = true;
       }
     }
 
     try {
-      void updateTaskStatus(conversationId, taskHandle, !usePolling);
+      void updateTaskStatus(convId, taskHandle, !usePolling);
     } catch {
       setIsLoading(false);
       setIsAgentLoading(false);
     }
   };
 
+  const onSubmitNewChat: OnSubmit = (message) => {
+    void (async () => {
+      const newConversationId = await adminApiClient
+        .conversations()
+        .createConversation(agentId!);
+      navigate(`/enthusiast/chat/${newConversationId}`, {
+        state: { pendingMessage: message },
+        replace: true,
+      });
+    })();
+  };
+
   const isUserMessage = (message: MessageProps) => {
     return message.type === "human" || message.type === "file";
   };
+
+  if (isNew && !agentIdFromUrl) {
+    toast.info("No agent.", { description: "Choose an agent to start a chat." });
+    return <Navigate to="/enthusiast" replace />;
+  }
 
   return (
     <div className="flex h-screen overflow-hidden">
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden px-1 py-2">
         <PageMain className="h-full">
-          {conversation && (
+          {isContentLoading ? (
+            <ContentSpinner />
+          ) : isNew ? (
             <>
               <PageHeading
                 title={agentDetails?.name || ""}
-                description={agentDetails?.description}
+                description="Start a new conversation."
                 className="flex-shrink-0 bg-background z-[1] px-8"
-              ></PageHeading>
+              />
               <ChatWindow
-                className="flex-1 min-h-0"
-                onSubmit={(message) => {
-                  void onMessageComposerSubmit(message);
-                }}
-                isLoading={isLoading}
-                conversationLocked={isAgentDeleted || isAgentCorrupted}
-                conversationId={conversationId}
+                key={`new-${agentId}`}
+                className="flex-1 min-h-0 pt-4"
+                onSubmit={onSubmitNewChat}
+                isLoading={false}
                 agentId={agentId}
                 fileUploadEnabled={agentDetails?.file_upload}
               >
-                <div className="grow flex-1 space-y-4">
-                  {messages.map((message, index) => {
-                    const inMessageGroup =
-                      isUserMessage(message) && index > 0 && isUserMessage(messages[index - 1]);
-
-                    if (message.type === "system") {
-                      return <MessageError key={index} text={message.text} />;
-                    }
-
-                    if (message.type === "file") {
-                      return (
-                        <AttachmentBubble
-                          key={index}
-                          variant="primary"
-                          message={message}
-                          inMessageGroup={inMessageGroup}
-                        />
-                      );
-                    }
-
-                    if (message.type === "ai" && message.text === "") {
-                      return <MessageBubbleTyping key={index} text={agentAction} />;
-                    }
-
-                    return (
-                      <MessageBubble
-                        key={index}
-                        text={message.text}
-                        variant={message.type === "human" ? "primary" : "secondary"}
-                        questionId={message.id}
-                        inMessageGroup={inMessageGroup}
-                      />
-                    );
-                  })}
-                  {isAgentLoading &&
-                    !messages.some((msg) => msg.type === "ai" && msg.text === "") && (
-                      <MessageBubbleTyping text={agentAction} />
-                    )}
-                  <div className="mb-4" />
-                  <div ref={lastMessageRef} />
+                <div className="grow flex items-start justify-center pt-16">
+                  {agentDetails?.description && (
+                    <div className="text-center space-y-4 max-w-2xl px-6">
+                      <div className="bg-background rounded-lg p-6">
+                        <p className="text-gray-500 text-base leading-relaxed">
+                          {agentDetails.description}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </ChatWindow>
             </>
+          ) : (
+            conversation && (
+              <>
+                <PageHeading
+                  title={agentDetails?.name || ""}
+                  description={agentDetails?.description}
+                  className="flex-shrink-0 bg-background z-[1] px-8"
+                />
+                <ChatWindow
+                  className="flex-1 min-h-0"
+                  onSubmit={(message) => {
+                    void onMessageComposerSubmit(message);
+                  }}
+                  isLoading={isLoading}
+                  conversationLocked={isAgentDeleted || isAgentCorrupted}
+                  conversationId={conversationId}
+                  agentId={agentId}
+                  fileUploadEnabled={agentDetails?.file_upload}
+                >
+                  <div className="grow flex-1 space-y-4">
+                    {messages.map((message, index) => {
+                      const inMessageGroup =
+                        isUserMessage(message) &&
+                        index > 0 &&
+                        isUserMessage(messages[index - 1]);
+
+                      if (message.type === "system") {
+                        return <MessageError key={index} text={message.text} />;
+                      }
+
+                      if (message.type === "file") {
+                        return (
+                          <AttachmentBubble
+                            key={index}
+                            variant="primary"
+                            message={message}
+                            inMessageGroup={inMessageGroup}
+                          />
+                        );
+                      }
+
+                      if (message.type === "ai" && message.text === "") {
+                        return <MessageBubbleTyping key={index} text={agentAction} />;
+                      }
+
+                      return (
+                        <MessageBubble
+                          key={index}
+                          text={message.text}
+                          variant={message.type === "human" ? "primary" : "secondary"}
+                          questionId={message.id}
+                          inMessageGroup={inMessageGroup}
+                        />
+                      );
+                    })}
+                    {isAgentLoading &&
+                      !messages.some((msg) => msg.type === "ai" && msg.text === "") && (
+                        <MessageBubbleTyping text={agentAction} />
+                      )}
+                    <div className="mb-4" />
+                    <div ref={lastMessageRef} />
+                  </div>
+                </ChatWindow>
+              </>
+            )
           )}
         </PageMain>
       </div>
