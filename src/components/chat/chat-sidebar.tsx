@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { adminApiClient } from "../../admin/lib/admin-client";
+import { useActiveDataset } from "../../admin/hooks/use-active-dataset";
 import { Agent } from "../../modules/enthusiast/api/types/agent";
 import { Conversation } from "../../modules/enthusiast/api/types/conversation";
 import { AgentList } from "./agent-list";
@@ -13,8 +14,8 @@ interface ChatSidebarProps {
 }
 
 export function ChatSidebar({ currentAgentId, currentConversationId }: ChatSidebarProps) {
-  const { dataSetId: dataset } = useParams();
-  const dataSetId = dataset ? parseInt(dataset, 10) : null;
+  const { dataset, isLoading: isDatasetLoading } = useActiveDataset();
+  const dataSetId = dataset?.external_id ?? null;
   const navigate = useNavigate();
 
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -23,7 +24,7 @@ export function ChatSidebar({ currentAgentId, currentConversationId }: ChatSideb
 
   useEffect(() => {
     const loadData = async () => {
-      if (!dataSetId) return;
+      if (isDatasetLoading || !dataSetId) return;
 
       try {
         setIsLoading(true);
@@ -45,18 +46,18 @@ export function ChatSidebar({ currentAgentId, currentConversationId }: ChatSideb
     };
 
     void loadData();
-  }, [dataSetId, currentAgentId, currentConversationId]);
+  }, [dataSetId, isDatasetLoading, currentAgentId, currentConversationId]);
 
   const handleAgentClick = (agentId: number) => {
-    navigate(`/enthusiast/dataset/${dataSetId}/chat?agent=${encodeURIComponent(agentId)}`);
+    navigate(`/enthusiast/chat?agent=${encodeURIComponent(agentId)}`);
   };
 
   const handleConversationClick = (conversationId: number) => {
-    navigate(`/enthusiast/dataset/${dataSetId}/chat/${conversationId}`);
+    navigate(`/enthusiast/chat/${conversationId}`);
   };
 
   const handleNewChat = () => {
-    navigate(`/enthusiast/dataset/${dataSetId}/chat?agent=${encodeURIComponent(currentAgentId)}`);
+    navigate(`/enthusiast/chat?agent=${encodeURIComponent(currentAgentId)}`);
   };
 
   if (isLoading) {

@@ -33,12 +33,12 @@ export type MessageProps =
   | FileMessageProps;
 
 interface ChatSessionProps {
+  datasetId: number;
   pendingMessage?: Message;
 }
 
-export function ChatSession({ pendingMessage }: ChatSessionProps) {
-  const { dataSetId: dataset, chatId } = useParams();
-  const dataSetId = parseInt(dataset as string, 10);
+export function ChatSession({ datasetId: dataSetId, pendingMessage }: ChatSessionProps) {
+  const { chatId } = useParams();
   const conversationId = parseInt(chatId as string, 10);
   const navigate = useNavigate();
 
@@ -344,7 +344,7 @@ export function ChatSession({ pendingMessage }: ChatSessionProps) {
     usePolling.current = !taskHandle.streaming;
 
     if (pendingMessage && message.text === pendingMessage.text) {
-      navigate(`/enthusiast/dataset/${dataSetId}/chat/${conversationId}`, {
+      navigate(`/enthusiast/chat/${conversationId}`, {
         replace: true,
         state: {},
       });

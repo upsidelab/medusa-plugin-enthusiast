@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Navigate, useLocation, useParams } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { Agent, AgentDetails } from "../../modules/enthusiast/api/types/agent";
 import { Message, OnSubmit } from "./message-composer";
 import { PageMain } from "../utils/page-main";
@@ -11,27 +11,28 @@ import { LoadingSpinner } from "../../components/utils/spinner";
 import { toast } from "@medusajs/ui";
 
 interface NewChatProps {
+  datasetId: number;
   onPendingMessage: (message: Message, conversationId: number) => void;
 }
 
-export function NewChat({ onPendingMessage }: NewChatProps) {
-  const { dataSetId: dataset } = useParams();
+export function NewChat({ datasetId, onPendingMessage }: NewChatProps) {
   const location = useLocation();
 
   const queryParams = new URLSearchParams(location.search);
   const agent = queryParams.get("agent");
   const agentId = agent ? parseInt(agent, 10) : null;
-  const datasetId = dataset ? parseInt(dataset, 10) : null;
 
   const [isLoading, setIsLoading] = useState(true);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [agentDetails, setAgentDetails] = useState<AgentDetails | null>(null);
 
   useEffect(() => {
+    if (!datasetId) return;
+
     const fetchDatasetAgents = async () => {
       try {
         setIsLoading(true);
-        const res = await adminApiClient.agents().getDatasetAgents(datasetId!);
+        const res = await adminApiClient.agents().getDatasetAgents(datasetId);
         setAgents(res);
       } finally {
         setIsLoading(false);
@@ -39,7 +40,7 @@ export function NewChat({ onPendingMessage }: NewChatProps) {
     };
     const fetchAgentDetails = async () => {
       if (!agentId) {
-        return
+        return;
       }
       try {
         setIsLoading(true);
@@ -52,7 +53,7 @@ export function NewChat({ onPendingMessage }: NewChatProps) {
     void fetchDatasetAgents();
     void fetchAgentDetails();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dataset]);
+  }, [datasetId]);
   if (!agent) {
     toast.info("No agent.", {
       description: "Choose an agent to start a chat.",

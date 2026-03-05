@@ -10,15 +10,15 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { adminApiClient } from "../../admin/lib/admin-client";
+import { useActiveDataset } from "../../admin/hooks/use-active-dataset";
 import { AgentDetails } from "../../modules/enthusiast/api/types/agent";
-import { EnthusiastDatasetType } from "@/admin/lib/types";
 import { LoadingSpinner } from "../../components/utils/spinner";
 import { ChatBubble, CogSixTooth } from "@medusajs/icons";
 import noDatasetsImage from "../../admin/assets/no-datasets.png";
 
 const columnHelper = createDataTableColumnHelper<AgentDetails>();
 
-const columns = (navigate: (path: string) => void, dataset: EnthusiastDatasetType | null) => [
+const columns = (navigate: (path: string) => void) => [
   columnHelper.accessor("name", {
     header: "Name",
     enableSorting: true,
@@ -37,7 +37,7 @@ const columns = (navigate: (path: string) => void, dataset: EnthusiastDatasetTyp
             variant="secondary"
             onClick={(e) => {
               e.stopPropagation();
-              navigate(`/enthusiast/dataset/${dataset?.external_id}/chat?agent=${row.original.id}`);
+              navigate(`/enthusiast/chat?agent=${row.original.id}`);
             }}
           >
             <ChatBubble />
@@ -50,9 +50,9 @@ const columns = (navigate: (path: string) => void, dataset: EnthusiastDatasetTyp
 ];
 
 export const AgentTable = () => {
-  const [dataset, setDataset] = useState<EnthusiastDatasetType | null>(null);
-  const [noDatasets, setNoDatasets] = useState<boolean | null>(null);
-  const [noActiveDatasets, setNoActiveDatasets] = useState<boolean | null>(null);
+  const { dataset, hasAnyDatasets, isLoading: isDatasetLoading } = useActiveDataset();
+  const noDatasets = !isDatasetLoading && hasAnyDatasets === false;
+  const noActiveDatasets = !isDatasetLoading && hasAnyDatasets === true && dataset === null;
   const [isLoading, setIsLoading] = useState(true);
   const [agents, setAgents] = useState<AgentDetails[]>([]);
   const navigate = useNavigate();
@@ -61,6 +61,7 @@ export const AgentTable = () => {
     const fetchDatasetAgents = async () => {
       if (!dataset) {
         setAgents([]);
+        setIsLoading(false);
         return;
       }
       try {
@@ -77,38 +78,18 @@ export const AgentTable = () => {
         setIsLoading(false);
       }
     };
-    void fetchDatasetAgents();
-  }, [dataset]);
-
-  useEffect(() => {
-    const fetchDataset = async () => {
-      try {
-        setIsLoading(true);
-        const res = await adminApiClient.dataSets().getInternalDataSets();
-        if (!res.length) {
-          setNoDatasets(true);
-          return;
-        }
-        const activeDatasets = res.filter((dataset) => dataset.is_active);
-        if (!activeDatasets.length) {
-          setNoActiveDatasets(true);
-          return;
-        }
-        setDataset(activeDatasets[0]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    void fetchDataset();
-  }, []);
+    if (!isDatasetLoading) {
+      void fetchDatasetAgents();
+    }
+  }, [dataset, isDatasetLoading]);
 
   const table = useDataTable({
-    columns: columns(navigate, dataset),
+    columns: columns(navigate),
     data: agents || [],
     getRowId: (row) => row.id.toString(),
     rowCount: agents.length,
     onRowClick(event, row) {
-      navigate(`/enthusiast/dataset/${dataset?.external_id}/chat?agent=${row.id}`);
+      navigate(`/enthusiast/chat?agent=${row.id}`);
     },
   });
   if (isLoading) {
