@@ -162,10 +162,7 @@ export function useConversation(dataSetId: number) {
     void loadAgentDetails();
   }, [agentId, agentDetails]);
 
-  const handleSseMessage = (
-    eventType: string,
-    payload: { chunk?: unknown; output?: unknown }
-  ) => {
+  const handleSseMessage = (eventType: string, payload: { chunk?: unknown; output?: unknown }) => {
     const handlers: Record<string, () => void> = {
       on_parser_start: () => {
         setIsAgentLoading(true);
@@ -245,9 +242,7 @@ export function useConversation(dataSetId: number) {
 
       abortStreamRef.current = abort;
 
-      const processEvent = async (
-        stream: AsyncIterable<{ event?: string; data?: string }>
-      ) => {
+      const processEvent = async (stream: AsyncIterable<{ event?: string; data?: string }>) => {
         try {
           for await (const chunk of stream) {
             const eventType = chunk.event;
@@ -277,11 +272,7 @@ export function useConversation(dataSetId: number) {
     }
   };
 
-  const updateTaskStatus = async (
-    convId: number,
-    taskHandle: TaskHandle,
-    streaming: boolean
-  ) => {
+  const updateTaskStatus = async (convId: number, taskHandle: TaskHandle, streaming: boolean) => {
     if (streaming) return;
     if (currentTaskHandleRef.current?.task_id !== taskHandle.task_id) return;
 
