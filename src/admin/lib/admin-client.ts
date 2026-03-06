@@ -66,10 +66,13 @@ export class AdminEnthusiastConversationsApiClient {
       agent_id: agentId,
     };
 
-    const response = await enthusiastAdminSdk.client.fetch<{ id: number }>(`/enthusiast/conversations`, {
-      method: "POST",
-      body: requestBody,
-    });
+    const response = await enthusiastAdminSdk.client.fetch<{ id: number }>(
+      `/enthusiast/conversations`,
+      {
+        method: "POST",
+        body: requestBody,
+      }
+    );
 
     return response.id;
   }

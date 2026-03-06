@@ -2,7 +2,7 @@ import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
 import { ENTHUSIAST_MODULE } from "../../../../../modules/enthusiast";
 import EnthusiastService from "../../../../../modules/enthusiast/service";
 import { withErrorHandler } from "../../../../../api/wrappers";
-import {TaskHandle} from "../../../../../modules/enthusiast/api/types/conversation";
+import { TaskHandle } from "../../../../../modules/enthusiast/api/types/conversation";
 
 export const GET = withErrorHandler(async (req: MedusaRequest, res: MedusaResponse) => {
   const enthusiastService: EnthusiastService = req.scope.resolve(ENTHUSIAST_MODULE);

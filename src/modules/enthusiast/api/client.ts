@@ -58,7 +58,9 @@ export abstract class BaseApiClient {
       if (!errorObj || typeof errorObj !== "object") {
         return "Unknown error";
       }
-      const firstEntry = Object.entries(errorObj as { [s: string]: unknown })[0] as [string, any] | undefined;
+      const firstEntry = Object.entries(errorObj as { [s: string]: unknown })[0] as
+        | [string, any]
+        | undefined;
 
       if (!firstEntry) return "Unknown error";
 
@@ -127,7 +129,7 @@ export class ConversationsApiClient extends BaseApiClient {
       throw new Error(`Failed to create conversation: ${response.statusText}`);
     }
 
-    const { id } = await response.json() as {id: number};
+    const { id } = (await response.json()) as { id: number };
     return id;
   }
 
@@ -284,7 +286,7 @@ export class DataSetsApiClient extends BaseApiClient {
       `${this.apiBase}/api/data_sets`,
       this._requestConfiguration()
     );
-    const data = await response.json() as {results: DataSet[]};
+    const data = (await response.json()) as { results: DataSet[] };
     return data.results;
   }
 
