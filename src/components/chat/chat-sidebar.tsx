@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { adminApiClient } from "../../admin/lib/admin-client";
+import { useActiveDataset } from "../../admin/hooks/use-active-dataset";
 import { Agent } from "../../modules/enthusiast/api/types/agent";
 import { Conversation } from "../../modules/enthusiast/api/types/conversation";
 import { AgentList } from "./agent-list";
@@ -13,53 +14,64 @@ interface ChatSidebarProps {
 }
 
 export function ChatSidebar({ currentAgentId, currentConversationId }: ChatSidebarProps) {
-  const { dataSetId: dataset } = useParams();
-  const dataSetId = dataset ? parseInt(dataset, 10) : null;
+  const { dataset, isLoading: isDatasetLoading } = useActiveDataset();
+  const dataSetId = dataset?.external_id ?? null;
   const navigate = useNavigate();
 
   const [agents, setAgents] = useState<Agent[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isAgentsLoading, setIsAgentsLoading] = useState(true);
 
+  // Load agents only when the active dataset changes
   useEffect(() => {
-    const loadData = async () => {
-      if (!dataSetId) return;
+    if (isDatasetLoading || !dataSetId) return;
 
+    const loadAgents = async () => {
       try {
-        setIsLoading(true);
-
+        setIsAgentsLoading(true);
         const agentsRes = await adminApiClient.agents().getDatasetAgents(dataSetId);
-        const availableAgents = agentsRes.filter((agent) => !agent.corrupted);
-        setAgents(availableAgents);
-
-        const conversationsRes = await adminApiClient
-          .conversations()
-          .getConversations(dataSetId, currentAgentId, 1);
-        const conversationArray = conversationsRes.results || [];
-        setConversations(conversationArray);
+        setAgents(agentsRes.filter((agent) => !agent.corrupted));
       } catch (error) {
-        console.error("Failed to load sidebar data:", error);
+        console.error("Failed to load agents:", error);
       } finally {
-        setIsLoading(false);
+        setIsAgentsLoading(false);
       }
     };
 
-    void loadData();
+    void loadAgents();
+  }, [dataSetId, isDatasetLoading]);
+
+  // Reload conversations when the agent or active conversation changes (background, no spinner)
+  useEffect(() => {
+    if (!dataSetId || !currentAgentId) return;
+
+    const loadConversations = async () => {
+      try {
+        const conversationsRes = await adminApiClient
+          .conversations()
+          .getConversations(dataSetId, currentAgentId, 1);
+        setConversations(conversationsRes.results || []);
+      } catch (error) {
+        console.error("Failed to load conversations:", error);
+      }
+    };
+
+    void loadConversations();
   }, [dataSetId, currentAgentId, currentConversationId]);
 
   const handleAgentClick = (agentId: number) => {
-    navigate(`/enthusiast/dataset/${dataSetId}/chat?agent=${encodeURIComponent(agentId)}`);
+    navigate(`/enthusiast/chat/new?agent=${encodeURIComponent(agentId)}`);
   };
 
   const handleConversationClick = (conversationId: number) => {
-    navigate(`/enthusiast/dataset/${dataSetId}/chat/${conversationId}`);
+    navigate(`/enthusiast/chat/${conversationId}`);
   };
 
   const handleNewChat = () => {
-    navigate(`/enthusiast/dataset/${dataSetId}/chat?agent=${encodeURIComponent(currentAgentId)}`);
+    navigate(`/enthusiast/chat/new?agent=${encodeURIComponent(currentAgentId)}`);
   };
 
-  if (isLoading) {
+  if (isAgentsLoading) {
     return <LoadingSpinner />;
   }
 
