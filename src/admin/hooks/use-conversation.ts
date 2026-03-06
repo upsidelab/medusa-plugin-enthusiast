@@ -377,11 +377,11 @@ export function useConversation(dataSetId: number) {
     }
   };
 
-  const onSubmitNewChat: OnSubmit = (message) => {
+  const onSubmitNewChat: OnSubmit = (message, createdConversationId) => {
     void (async () => {
-      const newConversationId = await adminApiClient
-        .conversations()
-        .createConversation(agentId!);
+      const newConversationId =
+        createdConversationId ??
+        (await adminApiClient.conversations().createConversation(agentId!));
       navigate(`/enthusiast/chat/${newConversationId}`, {
         state: { pendingMessage: message },
         replace: true,
