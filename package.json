@@ -1,6 +1,6 @@
 {
-  "name": "medusa-plugin-enthusiast-test",
-  "version": "0.0.1",
+  "name": "@upsidelab/medusa-plugin-enthusiast-test",
+  "version": "0.0.7",
   "description": "A starter for Medusa plugins.",
   "author": "Medusa (https://medusajs.com)",
   "license": "MIT",
@@ -70,13 +70,13 @@
     "yalc": "^1.0.0-pre.53"
   },
   "peerDependencies": {
-    "@medusajs/admin-sdk": "2.11.2",
-    "@medusajs/cli": "2.11.2",
-    "@medusajs/framework": "2.11.2",
-    "@medusajs/icons": "2.11.2",
-    "@medusajs/medusa": "2.11.2",
-    "@medusajs/test-utils": "2.11.2",
-    "@medusajs/ui": "4.0.26"
+    "@medusajs/admin-sdk": "^2.11.2",
+    "@medusajs/cli": "^2.11.2",
+    "@medusajs/framework": "^2.11.2",
+    "@medusajs/icons": "^2.11.2",
+    "@medusajs/medusa": "^2.11.2",
+    "@medusajs/test-utils": "^2.11.2",
+    "@medusajs/ui": "^4.0.26"
   },
   "engines": {
     "node": ">=20"
