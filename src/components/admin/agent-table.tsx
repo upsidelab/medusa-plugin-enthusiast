@@ -117,7 +117,7 @@ export const AgentTable = () => {
               <Button
                 variant="secondary"
                 size="small"
-                onClick={() => navigate("/enthusiast/settings")}
+                onClick={() => navigate("/enthusiast/settings?create_dataset=true")}
                 className="border border-gray-300"
               >
                 Open Settings

@@ -18,6 +18,7 @@ type DatasetCreateFormProps = {
   anyActive: boolean;
   isFirst: boolean;
   defaultOpen?: boolean;
+  onSuccess?: () => void;
 };
 
 export const DatasetCreateForm = ({
@@ -25,6 +26,7 @@ export const DatasetCreateForm = ({
   anyActive,
   isFirst,
   defaultOpen = false,
+  onSuccess,
 }: DatasetCreateFormProps) => {
   const [providersConfig, setProvidersConfig] = useState<ProvidersConfig | undefined>(undefined);
   const [languageModelNames, setLanguageModelNames] = useState<string[] | undefined>(undefined);
@@ -118,6 +120,7 @@ export const DatasetCreateForm = ({
       description: `Dataset "${dataset.name}" created successfully`,
       position: "top-right",
     });
+    onSuccess?.();
   });
 
   return (

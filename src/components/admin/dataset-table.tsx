@@ -18,7 +18,12 @@ import { ArrowPath } from "@medusajs/icons";
 import { DatasetCreateForm } from "../../components/admin/dataset-create-form";
 import { getFullDate } from "../../admin/lib/utils";
 
-export const DatasetTable = () => {
+type DatasetTableProps = {
+  forceOpenCreate?: boolean;
+  onCreateSuccess?: () => void;
+};
+
+export const DatasetTable = ({ forceOpenCreate = false, onCreateSuccess }: DatasetTableProps) => {
   const [datasets, setDatasets] = useState<EnthusiastDatasetType[]>([]);
   const [hasLoaded, setHasLoaded] = useState(false);
 
@@ -144,7 +149,8 @@ export const DatasetTable = () => {
               setRefetch={fetchDatasets}
               anyActive={datasets.some((dataset) => dataset.is_active)}
               isFirst={!datasets.length}
-              defaultOpen={hasLoaded && datasets.length === 0}
+              defaultOpen={forceOpenCreate || (hasLoaded && datasets.length === 0)}
+              onSuccess={onCreateSuccess}
             />
           </DataTable.Toolbar>
           <div
