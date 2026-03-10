@@ -28,6 +28,8 @@ ENTHUSIAST_API_URL=http://localhost:10000
 ENTHUSIAST_WS_URL=ws://localhost:10000
 ENTHUSIAST_SERVICE_ACCOUNT_TOKEN=<generated-service-account-token>
 ENTHUSIAST_INTEGRATION_NAME=Medusa
+ENTHUSIAST_MEDUSA_BACKEND_URL=http://host.docker.internal:9000
+ENTHUSIAST_MEDUSA_ADMIN_URL=http://localhost:9000
 ```
 
 - `ENTHUSIAST_API_URL`: Your Enthusiast instance base API url.
