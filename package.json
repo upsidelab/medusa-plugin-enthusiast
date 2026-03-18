@@ -1,9 +1,14 @@
 {
-  "name": "@upsidelab/medusa-plugin-enthusiast-test",
-  "version": "0.0.8",
-  "description": "A starter for Medusa plugins.",
-  "author": "Medusa (https://medusajs.com)",
+  "name": "@upsidelab/medusa-plugin-enthusiast",
+  "version": "1.0.0",
+  "description": "Medusa plugin for Enthusiast integration.",
+  "author": "Upside Lab (https://upsidelab.io/)",
   "license": "MIT",
+  "homepage": "https://github.com/upsidelab/medusa-plugin-enthusiast",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/upsidelab/medusa-plugin-enthusiast.git"
+  },
   "files": [
     ".medusa/server"
   ],
