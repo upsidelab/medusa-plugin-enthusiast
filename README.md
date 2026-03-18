@@ -5,7 +5,7 @@ A Medusa plugin that integrates with Enthusiast.
 ## Prerequisite
 
 1. Access to Enthusiast instance
-2. Enthusiast with configured Medusa integration [Docs](https://upsidelab.io/tools/enthusiast/integrations/medusa) //todo Place correct link
+2. Enthusiast with configured Medusa integration [Docs](https://upsidelab.io/tools/enthusiast/integrations/medusa)
 3. Medusa v2.x
 4. Node.js >= 20
 
@@ -14,7 +14,7 @@ A Medusa plugin that integrates with Enthusiast.
 Install the plugin in your Medusa project:
 
 ```bash
-npm install @uspidelab/medusa-enthusiast //todo place actual name
+npm install @upsidelab/medusa-plugin-enthusiast
 ```
 
 ## Configuration
@@ -47,7 +47,7 @@ Add below entry to your plugins array:
 
 ```typescript
 {
-  resolve: "@upsideuspidelab/medusa-enthusiast",
+  resolve: "@upsidelab/medusa-plugin-enthusiast",
   options: {
         enthusiastApiUrl: process.env.ENTHUSIAST_API_URL,
         enthusiastWSUrl: process.env.ENTHUSIAST_WS_URL,
