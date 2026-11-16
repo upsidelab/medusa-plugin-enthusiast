@@ -8,6 +8,16 @@ export type ProvidersConfig = {
   embeddingProviders: string[];
 };
 
+export type EmbeddingModelsConfigResponse = {
+  models: string[];
+  vector_size_constraints: Record<string, number[]>;
+};
+
+export type EmbeddingModelsConfig = {
+  models: string[];
+  vectorSizeConstraints: Record<string, number[]>;
+};
+
 export type IntegrationType = {
   type: string;
   name: string;

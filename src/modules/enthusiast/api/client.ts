@@ -20,7 +20,13 @@ import {
   IntegrationSyncStatusResponse,
   SyncResponse,
 } from "./types/dataset";
-import { IntegrationType, ProvidersConfig, ProvidersConfigResponse } from "./types/config";
+import {
+  EmbeddingModelsConfig,
+  EmbeddingModelsConfigResponse,
+  IntegrationType,
+  ProvidersConfig,
+  ProvidersConfigResponse,
+} from "./types/config";
 
 export class EnthusiastAPIError extends Error {
   constructor(
@@ -445,12 +451,16 @@ export class ConfigApiClient extends BaseApiClient {
     return (await response.json()) as string[];
   }
 
-  async getEmbeddingModelsForProvider(name: string): Promise<string[]> {
+  async getEmbeddingModelsForProvider(name: string): Promise<EmbeddingModelsConfig> {
     const response = await this.sendRequest(
       `${this.apiBase}/api/config/embedding_providers/${name}`,
       this._requestConfiguration()
     );
-    return (await response.json()) as string[];
+    const result = (await response.json()) as EmbeddingModelsConfigResponse;
+    return {
+      models: result.models ?? [],
+      vectorSizeConstraints: result.vector_size_constraints ?? {},
+    };
   }
 
   async getIntegrationTypes(): Promise<IntegrationType[]> {
