@@ -4,7 +4,7 @@ import * as zod from "zod";
 import { PostCreateDatasetSchema } from "../../api/admin/datasets/validators";
 import { useEffect, useState } from "react";
 import { adminApiClient } from "../../admin/lib/admin-client";
-import { ProvidersConfig } from "../../modules/enthusiast/api/types/config";
+import { EmbeddingModelsConfig, ProvidersConfig } from "../../modules/enthusiast/api/types/config";
 import { ChevronRightMini, XMarkMini } from "@medusajs/icons";
 import {
   Collapsible,
@@ -30,7 +30,10 @@ export const DatasetCreateForm = ({
 }: DatasetCreateFormProps) => {
   const [providersConfig, setProvidersConfig] = useState<ProvidersConfig | undefined>(undefined);
   const [languageModelNames, setLanguageModelNames] = useState<string[] | undefined>(undefined);
-  const [embeddingModels, setEmbeddingModels] = useState<string[] | undefined>(undefined);
+  const [embeddingModelsConfig, setEmbeddingModelsConfig] = useState<
+    EmbeddingModelsConfig | undefined
+  >(undefined);
+  const embeddingModels = embeddingModelsConfig?.models;
   const [formOpen, setFormOpen] = useState(defaultOpen);
   const [advancedOpen, setAdvancedOpen] = useState<boolean>(false);
 
@@ -89,21 +92,33 @@ export const DatasetCreateForm = ({
   useEffect(() => {
     const loadEmbeddingModels = async () => {
       if (embeddingProvider) {
-        setEmbeddingModels(undefined);
+        setEmbeddingModelsConfig(undefined);
         const result = await adminApiClient
           .config()
           .getEmbeddingModelsForProvider(embeddingProvider);
-        setEmbeddingModels(result);
+        setEmbeddingModelsConfig(result);
 
         const current = form.getValues("embedding_model");
-        if (result.length > 0 && (!current || !result.includes(current))) {
-          form.setValue("embedding_model", result[0]);
+        if (result.models.length > 0 && (!current || !result.models.includes(current))) {
+          form.setValue("embedding_model", result.models[0]);
         }
       }
     };
     void loadEmbeddingModels();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [embeddingProvider]);
+
+  const embeddingModel = form.watch("embedding_model");
+  const allowedVectorSizes = embeddingModelsConfig?.vectorSizeConstraints?.[embeddingModel ?? ""];
+  const isVectorSizeConstrained = !!allowedVectorSizes && allowedVectorSizes.length > 0;
+
+  useEffect(() => {
+    if (!isVectorSizeConstrained) return;
+    if (!allowedVectorSizes.includes(form.getValues("embedding_vector_dimensions"))) {
+      form.setValue("embedding_vector_dimensions", allowedVectorSizes[0]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [embeddingModel, embeddingModelsConfig]);
 
   const handleSubmit = form.handleSubmit(async (payload) => {
     const dataset = await adminApiClient.enthusiastDatasets().create(payload);
@@ -360,14 +375,34 @@ export const DatasetCreateForm = ({
                                       Embedding Provider Dimensions
                                     </Label>
                                   </div>
-                                  <Input
-                                    type="number"
-                                    value={Number.isFinite(field.value) ? String(field.value) : ""}
-                                    onChange={(e) => {
-                                      const v = e.target.value;
-                                      field.onChange(v === "" ? 0 : Number(v));
-                                    }}
-                                  />
+                                  {isVectorSizeConstrained ? (
+                                    <Select
+                                      value={String(field.value)}
+                                      onValueChange={(v) => field.onChange(Number(v))}
+                                    >
+                                      <Select.Trigger>
+                                        <Select.Value />
+                                      </Select.Trigger>
+                                      <Select.Content>
+                                        {allowedVectorSizes.map((size) => (
+                                          <Select.Item key={size} value={String(size)}>
+                                            {size}
+                                          </Select.Item>
+                                        ))}
+                                      </Select.Content>
+                                    </Select>
+                                  ) : (
+                                    <Input
+                                      type="number"
+                                      value={
+                                        Number.isFinite(field.value) ? String(field.value) : ""
+                                      }
+                                      onChange={(e) => {
+                                        const v = e.target.value;
+                                        field.onChange(v === "" ? 0 : Number(v));
+                                      }}
+                                    />
+                                  )}
                                 </div>
                               );
                             }}

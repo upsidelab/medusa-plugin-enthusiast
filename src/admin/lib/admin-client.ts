@@ -16,6 +16,7 @@ import {
 import { Agent, AgentDetails } from "../../modules/enthusiast/api/types/agent";
 import { EnthusiastDatasetType } from "./types";
 import {
+  EmbeddingModelsConfig,
   ProvidersConfig,
   ProvidersConfigResponse,
 } from "../../modules/enthusiast/api/types/config";
@@ -40,11 +41,11 @@ export class AdminEnthusiastConfigApiClient {
     return response as string[];
   }
 
-  async getEmbeddingModelsForProvider(name: string): Promise<string[]> {
+  async getEmbeddingModelsForProvider(name: string): Promise<EmbeddingModelsConfig> {
     const response = await enthusiastAdminSdk.client.fetch(
       `/enthusiast/config/embedding-providers/${name}`
     );
-    return response as string[];
+    return response as EmbeddingModelsConfig;
   }
 }
 
