@@ -1,6 +1,6 @@
 {
   "name": "@upsidelab/medusa-plugin-enthusiast",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Medusa plugin for Enthusiast integration.",
   "author": "Upside Lab (https://upsidelab.io/)",
   "license": "MIT",

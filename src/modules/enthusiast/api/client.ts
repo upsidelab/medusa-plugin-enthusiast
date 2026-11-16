@@ -7,23 +7,20 @@ import {
   FileUploadResponse,
   FileUploadStatusResponse,
   Message,
+  MessagePushStatusResponse,
   PaginatedResult,
   SupportedFileTypes,
   TaskHandle,
-  TaskState,
 } from "./types/conversation";
 import {
-  CatalogSource,
-  ConfigureDocumentSourcePayload,
-  ConfigureProductSourcePayload,
   CreateDataSetPayload,
   DataSet,
   DataSetResponse,
-  DocumentSourceResponse,
-  ProductSourceResponse,
+  Integration,
+  IntegrationSyncStatusResponse,
   SyncResponse,
 } from "./types/dataset";
-import { PluginsConfig, ProvidersConfig, ProvidersConfigResponse } from "./types/config";
+import { IntegrationType, ProvidersConfig, ProvidersConfigResponse } from "./types/config";
 
 export class EnthusiastAPIError extends Error {
   constructor(
@@ -162,11 +159,11 @@ export class ConversationsApiClient extends BaseApiClient {
 
   async getTaskStatus(taskHandle: TaskHandle): Promise<string> {
     const response = await this.sendRequest(
-      `${this.apiBase}/api/task_status/${taskHandle.task_id}`,
+      `${this.apiBase}/api/message-push-status/${taskHandle.task_id}/`,
       { ...this._requestConfiguration() }
     );
-    const { state } = (await response.json()) as TaskState;
-    return state;
+    const { status } = (await response.json()) as MessagePushStatusResponse;
+    return status;
   }
 
   async fetchResponseMessage(
@@ -282,12 +279,16 @@ export class ConversationsApiClient extends BaseApiClient {
 
 export class DataSetsApiClient extends BaseApiClient {
   async getDataSets(): Promise<DataSet[]> {
-    const response = await this.sendRequest(
-      `${this.apiBase}/api/data_sets`,
-      this._requestConfiguration()
-    );
-    const data = (await response.json()) as { results: DataSet[] };
-    return data.results;
+    const dataSets: DataSet[] = [];
+    for (let page = 1; ; page++) {
+      const response = await this.sendRequest(
+        `${this.apiBase}/api/data_sets?page=${page}`,
+        this._requestConfiguration()
+      );
+      const body = (await response.json()) as { results: DataSet[]; next?: string | null };
+      dataSets.push(...body.results);
+      if (!body.next) return dataSets;
+    }
   }
 
   async createDataSet(payload: CreateDataSetPayload): Promise<number> {
@@ -301,73 +302,49 @@ export class DataSetsApiClient extends BaseApiClient {
     return responseJson.id;
   }
 
-  async configureDataSetProductSource(productSource: CatalogSource): Promise<number> {
-    const body: ConfigureProductSourcePayload = {
-      id: productSource.id,
-      plugin_name: productSource.plugin_name,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      config: JSON.parse(productSource.config),
-      data_set_id: productSource.data_set_id,
-    };
-
+  async listDataSetIntegrations(dataSetId: number): Promise<Integration[]> {
     const response = await this.sendRequest(
-      `${this.apiBase}/api/data_sets/${productSource.data_set_id}/product_sources/${productSource.id}`,
-      {
-        ...this._requestConfiguration(),
-        body: JSON.stringify(body),
-        method: "PATCH",
-      }
-    );
-
-    const responseJson = (await response.json()) as ProductSourceResponse;
-    return responseJson.id;
-  }
-
-  async getDataSetProductSource(
-    dataSetId: number,
-    productSourceId: number
-  ): Promise<CatalogSource> {
-    const response = await this.sendRequest(
-      `${this.apiBase}/api/data_sets/${dataSetId}/product_sources/${productSourceId}`,
+      `${this.apiBase}/api/data_sets/${dataSetId}/integrations/`,
       this._requestConfiguration()
     );
-    return (await response.json()) as CatalogSource;
+    return (await response.json()) as Integration[];
   }
 
-  async addDataSetProductSource(
-    dataSetId: number,
-    pluginName: string,
-    config: object
-  ): Promise<CatalogSource> {
-    const response = await this.sendRequest(
-      `${this.apiBase}/api/data_sets/${dataSetId}/product_sources`,
-      {
-        ...this._requestConfiguration(),
-        method: "POST",
-        body: JSON.stringify({ plugin_name: pluginName, config: { configuration_args: config } }),
-      }
-    );
-    return (await response.json()) as CatalogSource;
-  }
   async addDataSetIntegration(
     dataSetId: number,
-    pluginName: string,
+    type: string,
     config: object
-  ): Promise<CatalogSource> {
+  ): Promise<Integration> {
     const response = await this.sendRequest(
-      `${this.apiBase}/api/data_sets/${dataSetId}/ecommerce_integration`,
+      `${this.apiBase}/api/data_sets/${dataSetId}/integrations/`,
       {
         ...this._requestConfiguration(),
         method: "POST",
-        body: JSON.stringify({ plugin_name: pluginName, config: { configuration_args: config } }),
+        body: JSON.stringify({ type, config }),
       }
     );
-    return (await response.json()) as CatalogSource;
+    return (await response.json()) as Integration;
   }
 
-  async syncDataSetIntegration(dataSetId: number): Promise<SyncResponse> {
+  async updateDataSetIntegration(
+    dataSetId: number,
+    integrationId: number,
+    config: object
+  ): Promise<Integration> {
     const response = await this.sendRequest(
-      `${this.apiBase}/api/data_sets/${dataSetId}/ecommerce_integration/sync`,
+      `${this.apiBase}/api/data_sets/${dataSetId}/integrations/${integrationId}/`,
+      {
+        ...this._requestConfiguration(),
+        method: "PATCH",
+        body: JSON.stringify({ config }),
+      }
+    );
+    return (await response.json()) as Integration;
+  }
+
+  async syncDataSetIntegration(dataSetId: number, integrationId: number): Promise<SyncResponse> {
+    const response = await this.sendRequest(
+      `${this.apiBase}/api/data_sets/${dataSetId}/integrations/${integrationId}/sync/`,
       {
         ...this._requestConfiguration(),
         method: "POST",
@@ -376,26 +353,12 @@ export class DataSetsApiClient extends BaseApiClient {
     return (await response.json()) as SyncResponse;
   }
 
-  async configureDataSetDocumentSource(documentSource: CatalogSource): Promise<number> {
-    const body: ConfigureDocumentSourcePayload = {
-      id: documentSource.id,
-      plugin_name: documentSource.plugin_name,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      config: JSON.parse(documentSource.config),
-      data_set_id: documentSource.data_set_id,
-    };
-
+  async getIntegrationSyncStatus(taskId: string): Promise<IntegrationSyncStatusResponse> {
     const response = await this.sendRequest(
-      `${this.apiBase}/api/data_sets/${documentSource.data_set_id}/document_sources/${documentSource.id}`,
-      {
-        ...this._requestConfiguration(),
-        body: JSON.stringify(body),
-        method: "PATCH",
-      }
+      `${this.apiBase}/api/integration-sync-status/${taskId}/`,
+      this._requestConfiguration()
     );
-
-    const responseJson = (await response.json()) as DocumentSourceResponse;
-    return responseJson.id;
+    return (await response.json()) as IntegrationSyncStatusResponse;
   }
 
   async getDataSet(dataSetId: number): Promise<DataSet> {
@@ -450,6 +413,15 @@ export class AccountsApiClient extends BaseApiClient {
     );
     return (await response.json()) as Account;
   }
+
+  async createWebSocketTicket(): Promise<string> {
+    const response = await this.sendRequest(`${this.apiBase}/api/auth/ws_ticket`, {
+      ...this._requestConfiguration(),
+      method: "POST",
+    });
+    const { ticket } = (await response.json()) as { ticket: string };
+    return ticket;
+  }
 }
 export class ConfigApiClient extends BaseApiClient {
   async getAvailableProviders(): Promise<ProvidersConfig> {
@@ -481,19 +453,12 @@ export class ConfigApiClient extends BaseApiClient {
     return (await response.json()) as string[];
   }
 
-  async getAvailableProductSources(): Promise<PluginsConfig> {
+  async getIntegrationTypes(): Promise<IntegrationType[]> {
     const response = await this.sendRequest(
-      `${this.apiBase}/api/plugins/product_source_plugins?page_size=100`,
+      `${this.apiBase}/api/integration-types/`,
       this._requestConfiguration()
     );
-    return (await response.json()) as PluginsConfig;
-  }
-  async getAvailableIntegrations(): Promise<PluginsConfig> {
-    const response = await this.sendRequest(
-      `${this.apiBase}/api/plugins/ecommerce_integration_plugins?page_size=100`,
-      this._requestConfiguration()
-    );
-    return (await response.json()) as PluginsConfig;
+    return (await response.json()) as IntegrationType[];
   }
 }
 

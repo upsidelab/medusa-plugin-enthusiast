@@ -1,8 +1,8 @@
 export type PluginOptions = {
   enthusiastApiUrl: string;
   enthusiastServiceAccountToken: string;
-  enthusiastMedusaSourcePluginName: string;
-  enthusiastMedusaIntegrationName: string;
+  enthusiastIntegrationType?: string;
+  overrideExistingIntegration?: boolean;
   medusaBackendUrl: string;
   medusaAdminUrl: string;
   enthusiastWSUrl?: string;

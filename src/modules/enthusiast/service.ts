@@ -25,7 +25,11 @@ import { SyncStatus } from "./types";
 import syncDatasetStatusWorkflow from "../../workflows/check-sync-status";
 import { MedusaContainer } from "@medusajs/medusa";
 import { EntityManager } from "@medusajs/framework/mikro-orm/knex";
-import { CreateDataSetPayload } from "../../modules/enthusiast/api/types/dataset";
+import {
+  CreateDataSetPayload,
+  IntegrationSyncStatusResponse,
+} from "../../modules/enthusiast/api/types/dataset";
+import { IntegrationType } from "../../modules/enthusiast/api/types/config";
 import { WebsocketHandler } from "../../modules/enthusiast/websocket";
 import { AuthenticatedMedusaRequest } from "@medusajs/framework/http";
 
@@ -60,17 +64,26 @@ export default class EnthusiastService extends MedusaService({ EnthusiastDataset
     );
   };
 
-  isConnected = async () => {
-    await this.apiClient().accounts().me();
-    const availablePlugins = await this.apiClient().config().getAvailableIntegrations();
-    const integrationExists = availablePlugins.choices.some(
-      (plugin) => plugin.name === this.options_.enthusiastMedusaIntegrationName
-    );
-    if (!integrationExists) {
+  /**
+   * Verifies that the Enthusiast instance has an integration type matching
+   * `enthusiastIntegrationType` (e.g. `medusa`) registered.
+   */
+  private resolveIntegrationType = async (): Promise<IntegrationType> => {
+    const configured = this.options_.enthusiastIntegrationType ?? "medusa";
+    const integrationTypes = await this.apiClient().config().getIntegrationTypes();
+    const integrationType = integrationTypes.find((candidate) => candidate.type === configured);
+    if (!integrationType) {
       throw new EnthusiastServiceError(
-        `Integration ${this.options_.enthusiastMedusaIntegrationName} does not exist.`
+        `Integration type "${configured}" does not exist. ` +
+          `Make sure it is registered in the Enthusiast instance's CATALOG_INTEGRATION_PLUGINS.`
       );
     }
+    return integrationType;
+  };
+
+  isConnected = async () => {
+    await this.apiClient().accounts().me();
+    await this.resolveIntegrationType();
   };
   listAgents = async (dataSetId: number) => {
     return await this.apiClient().agents().getDatasetAvailableAgents(dataSetId);
@@ -114,6 +127,10 @@ export default class EnthusiastService extends MedusaService({ EnthusiastDataset
 
   getTaskStatus = async (taskHandle: TaskHandle): Promise<string> => {
     return await this.apiClient().conversations().getTaskStatus(taskHandle);
+  };
+
+  getIntegrationSyncStatus = async (taskId: string): Promise<IntegrationSyncStatusResponse> => {
+    return await this.apiClient().dataSets().getIntegrationSyncStatus(taskId);
   };
 
   fetchResponseMessage = async (conversationId: number, taskHandle: TaskHandle) => {
@@ -225,22 +242,56 @@ export default class EnthusiastService extends MedusaService({ EnthusiastDataset
       created_by: "enthusiast-plugin",
     });
 
-    const plugin = await this.apiClient()
-      .dataSets()
-      .addDataSetIntegration(dataset.external_id, this.options_.enthusiastMedusaIntegrationName, {
-        api_key: apiKey.token,
-        base_url: this.options_.medusaBackendUrl,
-        admin_base_url: this.options_.medusaAdminUrl,
-      });
+    const integrationType = await this.resolveIntegrationType();
+    const integrationConfig = {
+      api_key: apiKey.token,
+      base_url: this.options_.medusaBackendUrl,
+      admin_base_url: this.options_.medusaAdminUrl,
+    };
+    const dataSetsClient = this.apiClient().dataSets();
+    const integrations = await dataSetsClient.listDataSetIntegrations(dataset.external_id);
+    // Always reuse the integration this plugin created earlier (tracked via plugin_id). Adopting
+    // another integration of the same type (and overwriting its config) requires an explicit opt-in.
+    const existingIntegration =
+      integrations.find((integration) => integration.id === dataset.plugin_id) ??
+      (this.options_.overrideExistingIntegration
+        ? integrations.find((integration) => integration.type === integrationType.type)
+        : undefined);
+    const integration = existingIntegration
+      ? await dataSetsClient.updateDataSetIntegration(
+          dataset.external_id,
+          existingIntegration.id,
+          integrationConfig
+        )
+      : await dataSetsClient.addDataSetIntegration(
+          dataset.external_id,
+          integrationType.type,
+          integrationConfig
+        );
+    const { task_id } = await dataSetsClient.syncDataSetIntegration(
+      dataset.external_id,
+      integration.id
+    );
+
     await this.updateEnthusiastDatasets({
       id: dataset.id,
       is_connected: true,
-      plugin_id: plugin.id,
-      task_id: plugin.task_id,
+      plugin_id: integration.id,
+      task_id,
       sync_status: SyncStatus.PROCESSING,
       api_key_id: apiKey.id,
     });
+    if (dataset.api_key_id) {
+      await this.revokeApiKeys_(container, [dataset.api_key_id]);
+    }
     await syncDatasetStatusWorkflow(container).run({ input: { datasetId: dataset.id } });
+  }
+
+  private async revokeApiKeys_(container: MedusaContainer, apiKeyIds: string[]): Promise<void> {
+    if (!apiKeyIds.length) return;
+    const apiKeyModuleService = container.resolve(Modules.API_KEY);
+    await apiKeyModuleService.revoke({ id: apiKeyIds }, { revoked_by: "enthusiast-plugin" });
+    await apiKeyModuleService.deleteApiKeys(apiKeyIds);
   }
 
   @InjectManager()
@@ -253,6 +304,11 @@ export default class EnthusiastService extends MedusaService({ EnthusiastDataset
   }
 
   synchronizeDatasets = async (datasetId: string, container: MedusaContainer): Promise<void> => {
+    if (await this.resetIfIntegrationMissing(datasetId)) {
+      // connectDatasets recreates the integration and triggers the sync itself.
+      await this.connectDatasets(datasetId, container);
+      return;
+    }
     const datasets = await this.listEnthusiastDatasets({
       id: datasetId,
       is_connected: true,
@@ -264,7 +320,7 @@ export default class EnthusiastService extends MedusaService({ EnthusiastDataset
     const dataset = datasets[0];
     const { task_id } = await this.apiClient()
       .dataSets()
-      .syncDataSetIntegration(dataset.external_id);
+      .syncDataSetIntegration(dataset.external_id, dataset.plugin_id!);
 
     await this.updateEnthusiastDatasets({
       id: dataset.id,
@@ -288,6 +344,37 @@ export default class EnthusiastService extends MedusaService({ EnthusiastDataset
     await this.apiClient().dataSets().getDataSet(dataset.external_id);
   };
 
+  private integrationExists = async (dataset: {
+    external_id: number;
+    plugin_id: number | null;
+  }): Promise<boolean> => {
+    if (!dataset.plugin_id) return false;
+    const integrations = await this.apiClient()
+      .dataSets()
+      .listDataSetIntegrations(dataset.external_id);
+    return integrations.some((integration) => integration.id === dataset.plugin_id);
+  };
+
+  /**
+   * If the dataset is marked as connected but its integration was removed on the Enthusiast side
+   * (e.g. after an upgrade), clears the connection state so it can be connected again.
+   * Returns true when the state was reset.
+   */
+  private resetIfIntegrationMissing = async (datasetId: string): Promise<boolean> => {
+    const dataset = await this.retrieveEnthusiastDataset(datasetId);
+    if (!dataset.is_connected || (await this.integrationExists(dataset))) {
+      return false;
+    }
+    await this.updateEnthusiastDatasets({
+      id: dataset.id,
+      is_connected: false,
+      plugin_id: null,
+      task_id: null,
+      sync_status: null,
+    });
+    return true;
+  };
+
   datasetCreate = async (dataset: CreateDataSetPayload) => {
     const externalId = await this.apiClient().dataSets().createDataSet(dataset);
     return await this.createEnthusiastDatasets({ name: dataset.name, external_id: externalId });
@@ -303,7 +390,11 @@ export default class EnthusiastService extends MedusaService({ EnthusiastDataset
   };
   buildWebsocketHandler = () => {
     if (this.options_.enthusiastWSUrl) {
-      return new WebsocketHandler(this.options_.enthusiastWSUrl);
+      return new WebsocketHandler({
+        wsBaseUrl: this.options_.enthusiastWSUrl,
+        ticketProvider: () => this.apiClient().accounts().createWebSocketTicket(),
+        origin: this.options_.medusaAdminUrl,
+      });
     }
     return;
   };
@@ -331,7 +422,8 @@ export default class EnthusiastService extends MedusaService({ EnthusiastDataset
     @MedusaContext() sharedContext?: Context<EntityManager>
   ): Promise<void> {
     const dataset = await this.retrieveEnthusiastDataset(datasetId);
-    if (!dataset.is_connected) {
+    await this.resetIfIntegrationMissing(dataset.id);
+    if (!(await this.retrieveEnthusiastDataset(datasetId)).is_connected) {
       await this.connectDatasets(datasetId, container);
     }
     await this.checkDataset(datasetId);

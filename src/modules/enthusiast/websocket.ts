@@ -1,13 +1,25 @@
 import { EventEmitter } from "events";
 import WebSocket from "ws";
 
+export type WebsocketHandlerOptions = {
+  wsBaseUrl: string;
+  /** Issues a single-use ticket that authenticates the WebSocket handshake. */
+  ticketProvider: () => Promise<string>;
+  /** Sent as the `Origin` header, which the server checks against its allowed origins. */
+  origin?: string;
+};
+
 export class WebsocketHandler extends EventEmitter {
   private ws?: WebSocket;
   private wsBaseUrl_: string;
+  private ticketProvider_: () => Promise<string>;
+  private origin_?: string;
 
-  constructor(wsBaseUrl: string) {
+  constructor({ wsBaseUrl, ticketProvider, origin }: WebsocketHandlerOptions) {
     super();
     this.wsBaseUrl_ = wsBaseUrl;
+    this.ticketProvider_ = ticketProvider;
+    this.origin_ = origin;
   }
 
   private handleWebSocketMessage = (data: WebSocket.RawData) => {
@@ -34,14 +46,28 @@ export class WebsocketHandler extends EventEmitter {
     }
   };
 
-  createWsConnection(conversationId: number) {
+  async createWsConnection(conversationId: number) {
     if (this.ws?.readyState === WebSocket.OPEN) return;
     this.ws?.close();
 
-    this.ws = new WebSocket(`${this.wsBaseUrl_}/ws/chat/${conversationId}/`);
+    let ticket: string;
+    try {
+      ticket = await this.ticketProvider_();
+    } catch (err) {
+      this.emit("error", err);
+      return;
+    }
+
+    const url = `${this.wsBaseUrl_}/ws/chat/${conversationId}/?ticket=${encodeURIComponent(ticket)}`;
+    this.ws = new WebSocket(url, this.origin_ ? { headers: { Origin: this.origin_ } } : undefined);
 
     this.ws.on("message", this.handleWebSocketMessage);
     this.ws.on("error", this.handleWebSocketError);
     this.ws.on("close", this.handleWebSocketClose);
+  }
+
+  close() {
+    this.ws?.close();
+    this.ws = undefined;
   }
 }

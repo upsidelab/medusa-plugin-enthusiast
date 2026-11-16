@@ -24,24 +24,6 @@ export type UpdateDataSetPayload = {
   language_model: string;
 };
 
-export type ProductSourceResponse = {
-  id: number;
-  plugin_name: string;
-  config: string;
-  data_set_id: number;
-};
-
-export type ConfigureProductSourcePayload = ProductSourceResponse;
-
-export type DocumentSourceResponse = {
-  id: number;
-  plugin_name: string;
-  config: string;
-  data_set_id: number;
-};
-
-export type ConfigureDocumentSourcePayload = DocumentSourceResponse;
-
 export type DataSet = {
   id: number;
   name: string;
@@ -50,32 +32,27 @@ export type DataSet = {
   embeddingProvider: string;
   embeddingModel: string;
   embeddingVectorSize: number;
-  systemMessage: string;
 };
 
-export type CatalogSource = {
+export type Integration = {
   id: number;
-  plugin_name: string;
-  config: string;
-  data_set_id: number;
-  corrupted: boolean;
-  task_id?: string | null;
+  dataset: number;
+  type: string;
+  name: string;
+  config: Record<string, unknown>;
 };
+
 export type SyncResponse = {
   task_id: string;
 };
 
-export type Document = {
-  id: number;
-  url: string;
-  title: string;
-  content: string;
-  isIndexed: boolean;
-};
-
-export type User = {
-  id: number;
-  email: string;
-  isActive: boolean;
-  isStaff: boolean;
+export type IntegrationSyncStatusResponse = {
+  task_id: string;
+  status: string;
+  result?: {
+    integration_id?: number;
+    data_set_id?: number;
+    synced?: boolean;
+    error?: string;
+  };
 };

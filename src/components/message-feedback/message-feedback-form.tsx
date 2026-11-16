@@ -22,8 +22,11 @@ export function MessageFeedbackForm(
   const [feedback, setFeedback] = useState<string>("");
   const [isSubmitted, setIsSubmitted] = useState(false);
 
+  const isValid = rating !== null && feedback.trim().length > 0;
+
   async function onSubmit(event: SyntheticEvent) {
     event.preventDefault();
+    if (!isValid) return;
     setIsLoading(true);
 
     const feedbackData = {
@@ -77,7 +80,7 @@ export function MessageFeedbackForm(
             />
           </div>
 
-          <Button disabled={isLoading || isSubmitted} type="submit">
+          <Button disabled={isLoading || isSubmitted || !isValid} type="submit">
             {isSubmitted ? (
               <>Thank you for your feedback!</>
             ) : (

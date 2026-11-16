@@ -8,11 +8,11 @@ export type ProvidersConfig = {
   embeddingProviders: string[];
 };
 
-export type Plugin = {
+export type IntegrationType = {
+  type: string;
   name: string;
-  configuration_args: any;
-};
-
-export type PluginsConfig = {
-  choices: Plugin[];
+  integration_type_name: string;
+  syncable: boolean;
+  supports_oauth: boolean;
+  config_schema: unknown;
 };

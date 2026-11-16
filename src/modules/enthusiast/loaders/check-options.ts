@@ -8,7 +8,6 @@ export default async function checkOptionsLoader({ options, container }: LoaderO
   const required = {
     enthusiastApiUrl: moduleOptions.enthusiastApiUrl,
     enthusiastServiceAccountToken: moduleOptions.enthusiastServiceAccountToken,
-    enthusiastMedusaIntegrationName: moduleOptions.enthusiastMedusaIntegrationName,
   };
   const defaults = {
     medusaBackendUrl:
@@ -16,6 +15,8 @@ export default async function checkOptionsLoader({ options, container }: LoaderO
         ? configModule.admin.backendUrl
         : "http://host.docker.internal:9000",
     medusaAdminUrl: "http://localhost:9000",
+    enthusiastIntegrationType: "medusa",
+    overrideExistingIntegration: false,
   };
 
   const errors = Object.entries(required)

@@ -34,15 +34,14 @@ const poolDatasetSyncStatusStep = createStep(
     }
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      const taskStatus = await enthusiastService.getTaskStatus({
-        task_id: dataset.task_id,
-        streaming: false,
-      });
+      const { status: taskStatus, result } = await enthusiastService.getIntegrationSyncStatus(
+        dataset.task_id
+      );
       if (taskStatus === SUCCESS_STATUS) {
         await enthusiastService.updateEnthusiastDatasets({
           id: dataset.id,
           last_synced: new Date(),
-          sync_status: SyncStatus.SUCCESS,
+          sync_status: result?.synced === false ? SyncStatus.FAILED : SyncStatus.SUCCESS,
           task_id: null,
         });
         return new StepResponse();
