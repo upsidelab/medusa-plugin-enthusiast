@@ -1,10 +1,10 @@
 # Medusa Enthusiast Plugin
 
-A Medusa plugin that integrates with Enthusiast.
+A Medusa plugin that integrates with [Enthusiast](https://upsidelab.io/tools/enthusiast). See the [Enthusiast docs](https://upsidelab.io/tools/enthusiast/docs) to learn more about the platform.
 
-## Prerequisite
+## Prerequisites
 
-1. Access to a Suvereo instance running the Enthusiast domain definition (Enthusiast 2.x)
+1. Access to a [Suvereo](https://upsidelab.io/suvereo/docs) instance running the Enthusiast domain definition (Enthusiast 2.x)
 2. The Medusa integration (`enthusiast-source-medusa`) registered in the instance's `CATALOG_INTEGRATION_PLUGINS`
 3. Medusa v2.x
 4. Node.js >= 20
@@ -83,3 +83,12 @@ Once installed and configured, you can access the Enthusiast plugin in your Medu
 
 - Main Enthusiast Page: Navigate to the "Enthusiast" section in the admin sidebar
 - Settings: Go to Settings -> Enthusiast to manage datasets and configurations
+
+## Version compatibility
+
+| Enthusiast version | Plugin version |
+| ------------------ | -------------- |
+| 2.0 ([docs](https://upsidelab.io/tools/enthusiast/docs)) | `2.x` (`@upsidelab/medusa-plugin-enthusiast@^2.0.0`) |
+| 1.7 ([legacy docs](https://upsidelab.io/tools/enthusiast/v1.7/docs)) | `1.0.0` (`@upsidelab/medusa-plugin-enthusiast@1.0.0`) |
+
+The plugin versions are not interchangeable: 2.x talks to the Enthusiast 2.0 API, while 1.0.0 targets the Enthusiast 1.7 API.
