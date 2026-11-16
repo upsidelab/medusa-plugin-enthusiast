@@ -75,7 +75,7 @@ export function MessageFeedbackForm(
             <Textarea
               disabled={isSubmitted}
               onChange={(event) => setFeedback(event.target.value)}
-              className="bg-white"
+              className="bg-ui-bg-field text-ui-fg-base"
               placeholder="Type your feedback here."
             />
           </div>
