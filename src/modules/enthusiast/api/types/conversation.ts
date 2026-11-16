@@ -52,6 +52,7 @@ export type FileUploadStatusResponse = {
   task_id: string;
   status: string;
   result?: {
+    status?: string;
     file_id?: number;
     error?: string;
   };
@@ -63,4 +64,14 @@ export type StreamStatusResponse = {
 
 export type TaskState = {
   state: string;
+};
+
+export type MessagePushStatusResponse = {
+  task_id: string;
+  status: string;
+  result?: {
+    conversation_id?: number;
+    message_id?: number;
+    error?: string;
+  };
 };

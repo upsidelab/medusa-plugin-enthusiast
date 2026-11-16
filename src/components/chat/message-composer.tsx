@@ -111,9 +111,9 @@ export function MessageComposer({
     while (attempts < maxAttempts) {
       const statusData = await adminApiClient.conversations().getFileUploadStatus(taskId);
 
-      if (statusData.status === "SUCCESS") {
+      if (statusData.status === "SUCCESS" && statusData.result?.status !== "FAILURE") {
         return statusData.result!.file_id!;
-      } else if (statusData.status === "FAILURE") {
+      } else if (statusData.status === "FAILURE" || statusData.status === "SUCCESS") {
         throw new Error(statusData.result?.error || "Upload failed");
       }
 

@@ -1,7 +1,9 @@
 export type Agent = {
   id: number;
   name: string;
+  description?: string;
   agent_type: string;
+  agent_type_name?: string;
   created_at: string;
   updated_at: string;
   deleted_at: string;
@@ -12,7 +14,8 @@ export type Agent = {
 export type Account = {
   id: number;
   email: string;
-  is_staff: boolean;
+  is_admin: boolean;
+  permissions: string[];
 };
 
 export type TypeInfo = {
@@ -30,10 +33,9 @@ export type ExtraArgDetail = {
 };
 
 export type AgentConfig = {
-  agent_args?: Record<string, ExtraArgDetail>;
-  prompt_input?: Record<string, ExtraArgDetail>;
-  prompt_extension?: Record<string, ExtraArgDetail>;
-  tools?: Array<Record<string, ExtraArgDetail>>;
+  agent_args?: Record<string, unknown>;
+  prompt_input?: Record<string, unknown>;
+  tools?: Record<string, Record<string, unknown>>;
 };
 
 export type AgentDetails = {
